@@ -1,0 +1,9 @@
+.btnMenu{
+	-fx-background-color :  #5CBAED
+}
+.btnMenu:hover{
+	-fx-background-color : #25A3E7
+}
+.btnMenu:pressed {
+    -fx-background-color: #25A3E7; /* Màu tối hơn khi nhấn */
+}

@@ -1,0 +1,75 @@
+/* Màu nền tổng thể */
+AnchorPane {
+    -fx-background-color: #F1F9FD;
+}
+
+/* Khung chứa form đăng nhập */
+Pane {
+    -fx-background-color: #FFFFFF;
+    -fx-border-color: #5CBAED;
+    -fx-border-width: 1px;
+    -fx-border-radius: 8px;
+    -fx-padding: 20px;
+}
+
+/* Tiêu đề Đăng nhập */
+.label-heading {
+    -fx-font-size: 20px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #333333;
+}
+
+/* Label văn bản */
+.label {
+    -fx-font-size: 13px;
+    -fx-text-fill: #333333;
+}
+
+/* Đường dẫn Đăng ký */
+.label-link {
+    -fx-text-fill: #5CBAED;
+    -fx-underline: true;
+}
+
+.label-link:hover {
+    -fx-text-fill: #3A89C9;
+}
+
+/* TextField và PasswordField */
+.text-field, .password-field {
+    -fx-prompt-text-fill: #B0BEC5;
+    -fx-font-size: 13px;
+    -fx-padding: 8px;
+    -fx-border-color: #B0BEC5;
+    -fx-border-radius: 4px;
+}
+
+.text-field:focused, .password-field:focused {
+    -fx-border-color: #5CBAED;
+}
+
+/* Nút Đăng nhập */
+.button-login {
+    -fx-background-color: #5CBAED;
+    -fx-text-fill: white;
+    -fx-font-size: 13px;
+    -fx-padding: 6px 20px;
+    -fx-background-radius: 4px;
+}
+
+.button-login:hover {
+    -fx-background-color: #3A89C9;
+}
+
+/* Nút Nhập lại */
+.button-reset {
+    -fx-background-color: #E0E0E0;
+    -fx-text-fill: #333333;
+    -fx-font-size: 13px;
+    -fx-padding: 6px 20px;
+    -fx-background-radius: 4px;
+}
+
+.button-reset:hover {
+    -fx-background-color: #CCCCCC;
+}

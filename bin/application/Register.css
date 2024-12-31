@@ -1,0 +1,47 @@
+/* Định dạng tổng thể cho AnchorPane (toàn bộ nền) */
+.root {
+    -fx-background-color: #f2f2f2;
+}
+
+/* Định dạng tiêu đề "Đăng Ký" */
+.label-title {
+	-fx-font-size: 24px;
+	-fx-font-weight: bold;
+}
+
+/* Định dạng cho nhãn nhỏ (ví dụ: "Họ và tên:", "Lớp:") */
+.label-small {
+	-fx-font-size: 14px;
+	-fx-text-fill: #666;
+}
+
+/* Định dạng cho TextField (các ô nhập liệu) */
+.text-field {
+	-fx-background-radius: 5;
+	-fx-border-radius: 5;
+	-fx-border-color: #ccc;
+	-fx-padding: 5;
+}
+
+/* Định dạng cho nút Đăng ký */
+.button-register {
+	-fx-background-color: #4CAF50;
+	-fx-text-fill: white;
+	-fx-font-weight: bold;
+	-fx-background-radius: 5;
+}
+
+.button-register:hover {
+}
+
+/* Định dạng cho nhãn phản hồi lỗi */
+.label-response {
+	-fx-text-fill: red;
+}
+
+/* Định dạng cho liên kết "Đăng nhập" */
+.label-link {
+	-fx-text-fill: #1aa1e4;
+	-fx-font-style: italic;
+	-fx-cursor: hand;
+}
