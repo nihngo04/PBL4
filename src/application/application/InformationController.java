@@ -9,7 +9,6 @@ import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Alert.AlertType;
-import javafx.scene.control.Label;
 import javafx.event.ActionEvent;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
@@ -30,35 +29,35 @@ public class InformationController {
 	@FXML
 	private TextField txtData;
 
+	@FXML
+	private TextField txtDataMax;
+
 	private MainController mainController;
 	String MSSV = UserSession.getInstance().getMSSV();
 
-	// Setter to assign the MainController reference
 	public void setMainController(MainController mainController) {
 		this.mainController = mainController;
 	}
 
 	public void getInformationFromServer() {
 		try {
-			// Kết nối đến server
 			Socket socket = new Socket(ServerConfig.SERVER_IP, ServerConfig.SERVER_PORT);
 			DataInputStream input = new DataInputStream(socket.getInputStream());
 			DataOutputStream dos = new DataOutputStream(socket.getOutputStream());
 
-			// Gửi yêu cầu thông tin sinh viên
 			dos.writeUTF("GetInformation");
-			dos.writeUTF(MSSV); // Gửi MSSV tới server
+			dos.writeUTF(MSSV);
 
-			// Nhận thông tin từ server
-			String response = input.readUTF(); // Giả sử server trả về thông tin
-			// Tách thông tin thành từng dòng
+			String response = input.readUTF();
+			System.out.println("Server response: " + response);
 			String[] lines = response.split("\n");
 
-			// Cập nhật các trường thông tin và lưu vào UserSession
 			for (String line : lines) {
 				if (line.startsWith("MSSV:")) {
 					String mssvValue = line.split(": ")[1].trim();
 					UserSession.getInstance().setMSSV(mssvValue);
+				} else if (line.startsWith("Password:")) {
+					String pwValue = line.split(": ")[1].trim();
 				} else if (line.startsWith("Name:")) {
 					String tenValue = line.split(": ")[1].trim();
 					UserSession.getInstance().setTen(tenValue);
@@ -68,41 +67,46 @@ public class InformationController {
 				} else if (line.startsWith("Data:")) {
 					String dataValue = line.split(": ")[1].trim();
 					UserSession.getInstance().setData(dataValue);
-				}
+				} else if (line.startsWith("UserRoleID:")) {
+					String userRoleID = line.split(": ")[1].trim();
+				} else if (line.startsWith("UserRoleID:")) {
+					String userRoleID = line.split(": ")[1].trim();
+				} else if (line.startsWith("RoleName:")) {
+					String roleName = line.split(": ")[1].trim();
+				} else if (line.startsWith("DataMax:")) {
+		            String dataMaxValue = line.split(": ")[1].trim();
+		            UserSession.getInstance().setDataMax(dataMaxValue); // Sửa ở đây
+		        }	
 			}
 
-			// Đóng kết nối
 			input.close();
 			dos.close();
 			socket.close();
 
 		} catch (IOException e) {
 			e.printStackTrace();
-			System.out.println("Error in getting information from server: " + e.getMessage());
+			System.out.println("Loi: " + e.getMessage());
 		}
 	}
 
 	public void getInformationFromServer(String mssv) {
 		try {
-			// Kết nối đến server
 			Socket socket = new Socket(ServerConfig.SERVER_IP, ServerConfig.SERVER_PORT);
 			DataInputStream input = new DataInputStream(socket.getInputStream());
 			DataOutputStream dos = new DataOutputStream(socket.getOutputStream());
 
-			// Gửi yêu cầu thông tin sinh viên
 			dos.writeUTF("GetInformation");
-			dos.writeUTF(mssv); // Gửi MSSV tới server
+			dos.writeUTF(mssv);
 
-			// Nhận thông tin từ server
-			String response = input.readUTF(); // Giả sử server trả về thông tin
-			// Tách thông tin thành từng dòng
+			String response = input.readUTF();
 			String[] lines = response.split("\n");
 
-			// Cập nhật các trường thông tin và lưu vào UserSession
 			for (String line : lines) {
 				if (line.startsWith("MSSV:")) {
 					String mssvValue = line.split(": ")[1].trim();
 					UserSession.getInstance().setMSSV(mssvValue);
+				} else if (line.startsWith("Password:")) {
+					String pwValue = line.split(": ")[1].trim();
 				} else if (line.startsWith("Name:")) {
 					String tenValue = line.split(": ")[1].trim();
 					UserSession.getInstance().setTen(tenValue);
@@ -112,63 +116,63 @@ public class InformationController {
 				} else if (line.startsWith("Data:")) {
 					String dataValue = line.split(": ")[1].trim();
 					UserSession.getInstance().setData(dataValue);
-				}
+				} else if (line.startsWith("UserRoleID:")) {
+					String userRoleID = line.split(": ")[1].trim();
+				} else if (line.startsWith("UserRoleID:")) {
+					String userRoleID = line.split(": ")[1].trim();
+				} else if (line.startsWith("RoleName:")) {
+					String roleName = line.split(": ")[1].trim();
+				} else if (line.startsWith("DataMax:")) {
+		            String dataMaxValue = line.split(": ")[1].trim();
+		            UserSession.getInstance().setDataMax(dataMaxValue); // Sửa ở đây
+		        }
 			}
 
-			// Đóng kết nối
 			input.close();
 			dos.close();
 			socket.close();
 
 		} catch (IOException e) {
 			e.printStackTrace();
-			System.out.println("Error in getting information from server: " + e.getMessage());
+			System.out.println("Loi: " + e.getMessage());
 		}
 
-		// Sau khi nhận thông tin, cập nhật các TextField
 		loadInformation();
 	}
 
 	public void loadInformation() {
-		// Nếu giao diện đã khởi tạo, cập nhật các TextField
 		txtMSSV.setText(UserSession.getInstance().getMSSV());
 		txtTen.setText(UserSession.getInstance().getTen());
 		txtLop.setText(UserSession.getInstance().getLop());
 		txtData.setText(UserSession.getInstance().getData());
+		txtDataMax.setText(UserSession.getInstance().getDataMax());
 	}
 
 	@FXML
 	void handleChangeInfo(ActionEvent event) {
-		// Cho phép chỉnh sửa trường tên và lớp
 		txtTen.setEditable(true);
 		txtLop.setEditable(true);
-
-		// Đặt focus vào ô tên để người dùng dễ dàng chỉnh sửa ngay lập tức
 		txtTen.requestFocus();
 
 	}
 
 	@FXML
 	void handleSaveInfo(ActionEvent event) {
-		// Lấy giá trị mới từ các trường TextField
 		String newName = txtTen.getText();
 		String newClass = txtLop.getText();
-		String MSSV = UserSession.getInstance().getMSSV(); // Lấy MSSV từ UserSession
+		String MSSV = UserSession.getInstance().getMSSV();
 
 		try {
-			// Kết nối đến server
 			Socket socket = new Socket(ServerConfig.SERVER_IP, ServerConfig.SERVER_PORT);
 			DataInputStream input = new DataInputStream(socket.getInputStream());
 			DataOutputStream dos = new DataOutputStream(socket.getOutputStream());
 
-			// Gửi yêu cầu cập nhật thông tin
 			dos.writeUTF("UpdateInformation");
 			dos.writeUTF(MSSV);
 			dos.writeUTF(newName);
 			dos.writeUTF(newClass);
 			dos.writeUTF("1");
 
-			// Nhận kết quả từ server
 			String response = input.readUTF();
 			Alert alert = new Alert(AlertType.INFORMATION);
 			if ("Update successfull".equals(response)) {
@@ -179,7 +183,7 @@ public class InformationController {
 				UserSession.getInstance().setLop(txtLop.getText());
 				MainController mainController = new MainController();
 				if (mainController != null && mainController.lbTen != null) {
-					mainController.lbTen.setText(newName); // Update the label with the new name
+					mainController.lbTen.setText(newName);
 				}
 			} else {
 				alert.setAlertType(AlertType.ERROR);
@@ -188,15 +192,12 @@ public class InformationController {
 				alert.setContentText("Cập nhật thông tin không thành công: " + response);
 			}
 
-			// Hiển thị hộp thoại
 			alert.showAndWait();
 
-			// Đóng kết nối
 			input.close();
 			dos.close();
 			socket.close();
 
-			// Đặt lại chế độ không chỉnh sửa cho các trường TextField
 			txtTen.setEditable(false);
 			txtLop.setEditable(false);
 
@@ -213,16 +214,14 @@ public class InformationController {
 	@FXML
 	void showChangePasswordForm(ActionEvent event) {
 		try {
-			// Load FXML form đổi mật khẩu
 			FXMLLoader fxmlLoader = new FXMLLoader(getClass().getResource("/application/ChangePw.fxml"));
 			Parent changePasswordRoot = fxmlLoader.load();
 
-			// Tạo một Stage mới để hiển thị form đổi mật khẩu
 			Stage stage = new Stage();
 			stage.setTitle("Đổi mật khẩu");
-			stage.initModality(Modality.APPLICATION_MODAL); // Chặn các cửa sổ khác đến khi đóng form này
+			stage.initModality(Modality.APPLICATION_MODAL);
 			stage.setScene(new Scene(changePasswordRoot));
-			stage.showAndWait(); // Đợi form đổi mật khẩu đóng lại
+			stage.showAndWait();
 
 		} catch (IOException e) {
 			e.printStackTrace();

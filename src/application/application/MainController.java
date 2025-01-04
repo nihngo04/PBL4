@@ -12,9 +12,11 @@ import javafx.stage.DirectoryChooser;
 import javafx.stage.Modality;
 import javafx.stage.Popup;
 import javafx.stage.Stage;
+import javafx.util.Pair;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.ButtonType;
+import javafx.scene.control.ComboBox;
 import javafx.scene.control.ContextMenu;
 import javafx.scene.control.Dialog;
 import javafx.scene.control.Hyperlink;
@@ -25,6 +27,7 @@ import javafx.scene.control.ScrollPane;
 import javafx.scene.control.TextField;
 import javafx.scene.control.TextInputDialog;
 import javafx.scene.image.*;
+import javafx.scene.input.KeyCode;
 import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
 import javafx.fxml.FXMLLoader;
@@ -58,14 +61,14 @@ import java.util.Set;
 import java.util.Stack;
 
 public class MainController {
-	private FileManager fileManager = new FileManager(); // Khởi tạo trực tiếp
+	private FileManager fileManager = new FileManager();
 
 	String mssv = UserSession.getInstance().getMSSV();
 	String root = UserSession.getInstance().getRoot();
 	private Popup currentPopup;
 
 	@FXML
-	private GridPane Centerpane;
+	public GridPane Centerpane;
 	@FXML
 	private Label lbMssv;
 	@FXML
@@ -77,9 +80,12 @@ public class MainController {
 	@FXML
 	private HBox labelPath;
 
+	@FXML
+	private TextField txtSearch;
+
 	private Stack<FileNode> historyStack = new Stack<>();
 
-	private String currentFunction; // Variable to track the current display mode
+	private String currentFunction;
 
 	public String currentFolderId = root;
 
@@ -97,12 +103,6 @@ public class MainController {
 		lbTen.setText(UserSession.getInstance().getTen());
 		handleTatCa();
 	}
-//	private Main mainApp;  // Thêm biến để lưu trữ tham chiếu đến Main
-
-	// Phương thức để thiết lập mainApp
-//    public void setMainApp(Main mainApp) {
-//        this.mainApp = mainApp;
-//    }
 
 	@FXML
 	public void handleTatCa() {
@@ -133,17 +133,14 @@ public class MainController {
 	@FXML
 	public void handleThongTinCaNhan() {
 		try {
-			// Tải giao diện thông tin cá nhân
 			FXMLLoader loader = new FXMLLoader(getClass().getResource("Information.fxml"));
 			Node newContent = loader.load();
 
-			// Lấy controller để gọi phương thức loadInformation
 			InformationController controller = loader.getController();
 			controller.setMainController(this);
 
-			controller.loadInformation(); // Gọi phương thức tải thông tin
+			controller.loadInformation();
 
-			// Xóa nội dung hiện tại và thêm nội dung mới vào Centerpane
 			Centerpane.getChildren().clear();
 			Centerpane.add(newContent, 0, 0);
 		} catch (IOException e) {
@@ -153,15 +150,6 @@ public class MainController {
 
 	@FXML
 	public void handleDangXuat(ActionEvent event) {
-//	    // Xóa dữ liệu phiên làm việc của người dùng
-//	    UserSession.getInstance().clearSession(); // Giả sử bạn có phương thức để xóa dữ liệu phiên
-//
-//	    // Quay lại màn hình đăng nhập
-//	    mainApp.showLogin();  // Gọi phương thức showLogin từ instance hiện tại của Main
-//
-//	    // Đóng cửa sổ hiện tại
-//	    Stage currentStage = (Stage) lbMssv.getScene().getWindow(); // Lấy cửa sổ hiện tại
-//	    currentStage.close(); // Đóng cửa sổ hiện tại
 		Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
 		stage.close();
 	}
@@ -175,29 +163,17 @@ public class MainController {
 			DataInputStream dis = new DataInputStream(socket.getInputStream());
 			DataOutputStream dos = new DataOutputStream(socket.getOutputStream());
 
-			// Gửi yêu cầu
 			dos.writeUTF(requestType);
 			dos.writeUTF(mssv);
 
-			// Nhận danh sách thư mục
 			String folderResponse = dis.readUTF();
 			System.out.println("Folders: " + folderResponse);
 
-			// Nhận danh sách file
 			String fileResponse = dis.readUTF();
 			System.out.println("Files: " + fileResponse);
 
-//			// Reset dữ liệu cũ trong FileManager
-//			fileManager.getFolders(root).clear();
-//			fileManager.getFiles(root).clear();
-
-			// Lưu trữ dữ liệu mới
 			storeData(fileManager, folderResponse, fileResponse);
-//			System.out.println("Folders in FileManager: " + fileManager.getFolders(root));
-//			System.out.println("Files in FileManager: " + fileManager.getFiles(root));
 
-//			System.out.println("Displaying files and folders...");
-			// Tạo và hiển thị cấu trúc
 			Platform.runLater(() -> {
 				displayFiles(fileManager);
 			});
@@ -216,16 +192,15 @@ public class MainController {
 		for (String entry : folderEntries) {
 			if (!entry.trim().isEmpty()) {
 				String[] parts = entry.split(",");
-				if (parts.length == 2) { // Đảm bảo dữ liệu đầy đủ
+				if (parts.length == 2) {
 					String id = parts[0].trim();
 					String name = parts[1].trim();
-					FileNode folder = new FileNode(id, name, true); // Đây là thư mục
-					String parentId = root; // Hoặc id của thư mục cha nếu có
+					FileNode folder = new FileNode(id, name, true);
+					String parentId = root;
 
 					// Kiểm tra xem thư mục đã tồn tại chưa trước khi thêm
 					if (!fileManager.isFolderExists(id)) {
 						fileManager.addFolder(parentId, folder);
-//						System.out.println("Added folder: " + name);
 					}
 				}
 			}
@@ -236,27 +211,22 @@ public class MainController {
 		for (String entry : fileEntries) {
 			if (!entry.trim().isEmpty()) {
 				String[] parts = entry.split(",");
-				if (parts.length == 2) { // Đảm bảo dữ liệu đầy đủ
+				if (parts.length == 2) {
 					String id = parts[0].trim();
 					String name = parts[1].trim();
-					FileNode file = new FileNode(id, name, false); // Đây là file
-					String parentId = root; // Hoặc id của thư mục cha nếu có
+					FileNode file = new FileNode(id, name, false);
+					String parentId = root;
 
 					// Kiểm tra xem file đã tồn tại chưa trước khi thêm
 					if (!fileManager.isFileExists(id)) {
 						fileManager.addFile(parentId, file);
-//						System.out.println("Added file: " + name);
 					}
 				}
 			}
 		}
 
-		// Đánh dấu thư mục là đã tải (nếu cần thiết)
 		fileManager.markAsLoaded(root);
 
-		// In ra danh sách thư mục và file đã lưu
-//		System.out.println("Folders in FileManager: " + fileManager.getFolders(root));
-//		System.out.println("Files in FileManager: " + fileManager.getFiles(root));
 	}
 
 	private void displayFiles(FileManager fileManager) {
@@ -265,14 +235,13 @@ public class MainController {
 		List<FileNode> folders = fileManager.getFolders(root);
 		List<FileNode> files = fileManager.getFiles(root);
 
-		// Đảm bảo GridPane có đủ không gian để chứa các mục
 		int row = 0, col = 0;
 
 		// Hiển thị các thư mục
 		for (FileNode folder : folders) {
 			displayFileNode(folder, contentGrid, col, row, fileManager);
 			col++;
-			if (col >= 8) { // Chuyển sang hàng mới khi cột đủ
+			if (col >= 8) {
 				col = 0;
 				row++;
 			}
@@ -282,65 +251,57 @@ public class MainController {
 		for (FileNode file : files) {
 			displayFileNode(file, contentGrid, col, row, fileManager);
 			col++;
-			if (col >= 8) { // Chuyển sang hàng mới khi cột đủ
+			if (col >= 8) {
 				col = 0;
 				row++;
 			}
 		}
 
-		// Đưa GridPane vào VBox để hiển thị và cuộn
 		VBox contentBox = new VBox(20);
 		contentBox.getChildren().add(contentGrid);
 
-		// Tạo ScrollPane để có thể cuộn khi cần
 		ScrollPane scrollPane = new ScrollPane(contentBox);
-		scrollPane.setFitToWidth(true); // Đảm bảo ScrollPane không bị tràn ra ngoài
+		scrollPane.setFitToWidth(true);
 
-		// Hiển thị nội dung lên Centerpane
 		Centerpane.getChildren().clear();
 		Centerpane.getChildren().add(scrollPane);
 	}
 
 	private void displayFileNode(FileNode node, GridPane contentGrid, int col, int row, FileManager fileManager) {
-		// Chọn icon phù hợp với loại file hoặc thư mục
 		String iconPath = node.isFolder() ? "/image/File.png" : getIconPath(node.getName());
 		ImageView icon = new ImageView(new Image(getClass().getResourceAsStream(iconPath)));
 		icon.setFitWidth(90);
 		icon.setFitHeight(90);
 
-		// Tạo label với tên của node
 		Label label = new Label(node.getName());
 		label.setId(node.getId());
 
-		// Tạo label nhỏ chứa dấu ⋮
 		Label menuIcon = new Label("⋮");
 		menuIcon.setStyle("-fx-font-size: 20px; -fx-text-fill: gray; -fx-padding: 0 5px;");
 
 		VBox box = new VBox(6, icon, label);
-		box.setAlignment(Pos.CENTER); // Căn giữa các phần tử trong VBox
+		box.setAlignment(Pos.CENTER);
 
 		HBox labelBox = new HBox(5, label, menuIcon);
-		labelBox.setAlignment(Pos.CENTER); // Căn giữa label và dấu ⋮ trong HBox
-		labelBox.setSpacing(5); // Khoảng cách giữa label và dấu ⋮
+		labelBox.setAlignment(Pos.CENTER);
+		labelBox.setSpacing(5);
 
 		menuIcon.setMaxWidth(20);
 
 		box.getChildren().add(labelBox);
 
-		// Gán sự kiện chuột trái cho icon (ImageView)
+		// Gán sự kiện chuột trái cho icon
 		icon.setOnMouseClicked(event -> {
-			if (event.getButton() == MouseButton.PRIMARY) { // Nhấp chuột trái vào icon
-//				System.out.println("Icon clicked: " + node.getName());
+			if (event.getButton() == MouseButton.PRIMARY) {
 				if (node.isFolder()) {
-					handleFolderClick(node.getId()); // Gọi handleFolderClick với id của thư mục
+					handleFolderClick(node.getId());
 				}
 			}
 		});
 
 		// Gán sự kiện cho dấu ⋮
 		menuIcon.setOnMouseClicked(event -> {
-			if (event.getButton() == MouseButton.PRIMARY) { // Nhấp chuột trái vào ⋮
-//				System.out.println("Click vào dấu ⋮ của: " + node.getName());
+			if (event.getButton() == MouseButton.PRIMARY) {
 
 				ContextMenu contextMenu;
 				if (node.isFolder()) {
@@ -349,16 +310,13 @@ public class MainController {
 					contextMenu = createFileContextMenu(node, label);
 				}
 
-				// Hiển thị ContextMenu tại vị trí nhấn chuột
 				contextMenu.show((Node) event.getSource(), event.getScreenX(), event.getScreenY());
 			}
 		});
 
-		// Thêm VBox vào GridPane
 		contentGrid.add(box, col, row);
 	}
 
-	// Tạo GridPane với cấu hình sẵn
 	private GridPane createGridPane() {
 		GridPane gridPane = new GridPane();
 		gridPane.setHgap(10);
@@ -368,7 +326,6 @@ public class MainController {
 		return gridPane;
 	}
 
-	// Tạo danh sách các cột cố định
 	private List<ColumnConstraints> createColumnConstraints() {
 		List<ColumnConstraints> constraints = new ArrayList<>();
 		for (int i = 0; i < 8; i++) {
@@ -387,21 +344,16 @@ public class MainController {
 			DataInputStream dis = new DataInputStream(socket.getInputStream());
 			DataOutputStream dos = new DataOutputStream(socket.getOutputStream());
 
-			// Gửi yêu cầu tải thư mục con
 			dos.writeUTF("GetAllByFolderID");
 			dos.writeUTF(folderId);
 
-			// Nhận phản hồi từ server
 			String folderResponse = dis.readUTF();
 			String fileResponse = dis.readUTF();
 
-			// Lưu dữ liệu vào FileManager
 			storeData(fileManager, folderId, folderResponse, fileResponse);
 
-			// Đánh dấu folderId là đã tải
 			fileManager.markAsLoaded(folderId);
 
-			// Hiển thị dữ liệu
 			displayFiles(fileManager, folderId);
 
 			dis.close();
@@ -422,9 +374,9 @@ public class MainController {
 				String name = parts[1].trim();
 				FileNode folder = new FileNode(id, name, true);
 
-				if (!fileManager.isFolderExists(id)) { // Kiểm tra thư mục tồn tại
+				if (!fileManager.isFolderExists(id)) {
 					fileManager.addFolder(folderId, folder);
-					fileManager.markAsLoaded(id); // Đánh dấu là đã tải
+					fileManager.markAsLoaded(id);
 				}
 			}
 		}
@@ -438,9 +390,9 @@ public class MainController {
 				String name = parts[1].trim();
 				FileNode file = new FileNode(id, name, false);
 
-				if (!fileManager.isFileExists(id)) { // Kiểm tra tệp tồn tại
+				if (!fileManager.isFileExists(id)) {
 					fileManager.addFile(folderId, file);
-					fileManager.markAsLoaded(id); // Đánh dấu là đã tải
+					fileManager.markAsLoaded(id);
 				}
 			}
 		}
@@ -456,7 +408,7 @@ public class MainController {
 		for (FileNode folder : folders) {
 			displayFileNode(folder, contentGrid, col, row, fileManager);
 			col++;
-			if (col >= 8) { // Chuyển sang hàng mới khi cột đủ
+			if (col >= 8) {
 				col = 0;
 				row++;
 			}
@@ -465,21 +417,18 @@ public class MainController {
 		for (FileNode file : files) {
 			displayFileNode(file, contentGrid, col, row, fileManager);
 			col++;
-			if (col >= 8) { // Chuyển sang hàng mới khi cột đủ
+			if (col >= 8) {
 				col = 0;
 				row++;
 			}
 		}
 
-		// Đưa GridPane vào VBox để hiển thị và cuộn
 		VBox contentBox = new VBox(20);
 		contentBox.getChildren().add(contentGrid);
 
-		// Tạo ScrollPane để có thể cuộn khi cần
 		ScrollPane scrollPane = new ScrollPane(contentBox);
-		scrollPane.setFitToWidth(true); // Đảm bảo ScrollPane không bị tràn ra ngoài
+		scrollPane.setFitToWidth(true);
 
-		// Hiển thị nội dung lên Centerpane
 		Centerpane.getChildren().clear();
 		Centerpane.getChildren().add(scrollPane);
 	}
@@ -487,25 +436,20 @@ public class MainController {
 	public void handleFolderClick(String folderId) {
 		FileNode currentFolder = findFolderById(folderId);
 		if (currentFolder != null) {
-			currentFolderId = folderId; // Cập nhật thư mục hiện tại
-			historyStack.push(currentFolder); // Lưu vào lịch sử
+			currentFolderId = folderId;
+			historyStack.push(currentFolder);
 
-			// Kiểm tra nếu thư mục chưa được tải
 			if (fileManager.isClicked(folderId)) {
-//				System.out.println("đã được click.");
 				displayFiles(fileManager, folderId);
 			} else {
-//				System.out.println("chưa được click.");
-				fileManager.markAsClicked(folderId); // Đánh dấu thư mục đã click
+				fileManager.markAsClicked(folderId);
 				loadFolderFromServer(folderId, fileManager);
 			}
 
-			// Cập nhật breadcrumb hoặc UI nếu cần
 			updateBreadcrumb();
 		}
 	}
 
-	// Tìm FileNode trong danh sách hiện tại
 	private FileNode findFolderById(String folderId) {
 		List<FileNode> folders = fileManager.getFolders(currentFolderId);
 		for (FileNode folder : folders) {
@@ -517,26 +461,20 @@ public class MainController {
 	}
 
 	private void updateBreadcrumb() {
-		// Xóa các phần tử hiện có
 		labelPath.getChildren().clear();
 
-		// Duyệt qua lịch sử để tạo đường dẫn
 		List<FileNode> breadcrumb = new ArrayList<>(historyStack);
 
 		for (int i = 0; i < breadcrumb.size(); i++) {
 			FileNode folder = breadcrumb.get(i);
 
-			// Tạo Hyperlink cho mỗi thư mục
 			Hyperlink link = new Hyperlink(folder.getName());
 			link.setOnAction(event -> handleBreadcrumbClick(folder.getId()));
 
-			// Tùy chỉnh style: font size lớn hơn, không gạch chân, và đổi màu chữ
 			link.setStyle("-fx-font-size: 14px; -fx-text-fill: black; -fx-underline: false;");
 
-			// Thêm Hyperlink vào labelPath
 			labelPath.getChildren().add(link);
 
-			// Thêm ">" nếu không phải thư mục cuối
 			if (i < breadcrumb.size() - 1) {
 				Label separator = new Label(">");
 				separator.setStyle("-fx-font-size: 16px;"); // Đồng bộ kích thước với Hyperlink
@@ -546,18 +484,15 @@ public class MainController {
 	}
 
 	private void handleBreadcrumbClick(String folderId) {
-		// Xóa lịch sử phía sau thư mục được nhấn
 		while (!historyStack.isEmpty() && !historyStack.peek().getId().equals(folderId)) {
 			historyStack.pop();
 		}
 
-		// Cập nhật thư mục hiện tại và hiển thị
 		currentFolderId = folderId;
 		displayFiles(fileManager, currentFolderId);
 		updateBreadcrumb();
 	}
 
-	// Hàm để xác định đường dẫn icon dựa trên đuôi file
 	private String getIconPath(String fileName) {
 		if (fileName.endsWith(".pdf")) {
 			return "/image/icon/icon/pdf128.png";
@@ -584,12 +519,11 @@ public class MainController {
 
 			UploadOptionsController controller = loader.getController();
 			controller.setMainController(this);
-			controller.setFileManager(this.fileManager); // Truyền đối tượng fileManager
+			controller.setFileManager(this.fileManager);
 
 			Popup popup = new Popup();
 			popup.getContent().add(uploadOptionsLayout);
 
-			// Keep reference to the popup
 			currentPopup = popup;
 
 			Point2D buttonLocation = btnUp.localToScreen(btnUp.getLayoutBounds().getMinX(),
@@ -600,10 +534,9 @@ public class MainController {
 
 			popup.show(btnUp.getScene().getWindow());
 
-			// Close the popup when clicking outside
 			btnUp.getScene().addEventFilter(MouseEvent.MOUSE_PRESSED, event -> {
 				if (!popup.getContent().contains(event.getTarget())) {
-					hidePopup(); // Hide popup if clicked outside
+					hidePopup();
 				}
 			});
 
@@ -612,57 +545,31 @@ public class MainController {
 		}
 	}
 
-	// Method to hide the popup
 	public void hidePopup() {
 		if (currentPopup != null) {
-			currentPopup.hide(); // Hide the popup
+			currentPopup.hide();
 		}
 	}
 
-//	private ContextMenu createFileContextMenu(FileNode fileNode, Label fileLabel) {
-//		ContextMenu contextMenu = new ContextMenu();
-//
-//		// Tùy chọn Download
-//		MenuItem downloadItem = new MenuItem("Download");
-//		downloadItem.setOnAction(event -> downloadFile(fileNode.getId(), (Stage) fileLabel.getScene().getWindow()));
-//		contextMenu.getItems().add(downloadItem);
-//
-//		// Tùy chọn Share
-//		MenuItem shareItem = new MenuItem("Share");
-//		shareItem.setOnAction(event -> {
-//			TextInputDialog dialog = new TextInputDialog();
-//			dialog.setTitle("Nhập MSSV");
-//			dialog.setHeaderText("Chia sẻ file với người khác");
-//			dialog.setContentText("Nhập MSSV của người nhận:");
-//			Optional<String> result = dialog.showAndWait();
-//			result.ifPresent(mssvgest -> shareFile(fileNode.getId(), mssvgest));
-//		});
-//		contextMenu.getItems().add(shareItem);
-//
-//		// Tùy chọn List Shared
-//		MenuItem listSharedItem = new MenuItem("List Shared");
-//		listSharedItem.setOnAction(event -> listSharedUsers(fileNode.getId()));
-//		contextMenu.getItems().add(listSharedItem);
-//
-//		// Tùy chọn Remove
-//		MenuItem removeItem = new MenuItem("Remove");
-//		removeItem.setOnAction(event -> {
-//			removeFile(fileNode.getId()); // Gửi yêu cầu xóa file lên server
-//		});
-//		contextMenu.getItems().add(removeItem);
-//
-//		return contextMenu;
-//	}
+//Menu
 	private ContextMenu createFileContextMenu(FileNode fileNode, Label fileLabel) {
 		ContextMenu contextMenu = new ContextMenu();
 		contextMenu.setStyle("-fx-font-size: 14px;");
 
-		// Kiểm tra nếu currentFunction là "GetGuestFileName"
 		if ("GetGuestFileName".equals(currentFunction)) {
-			// Chỉ thêm tùy chọn Download
+			// tùy chọn Download
 			MenuItem downloadItem = new MenuItem("Download");
 			downloadItem.setOnAction(event -> downloadFile(fileNode.getId(), (Stage) fileLabel.getScene().getWindow()));
 			contextMenu.getItems().add(downloadItem);
+			// Tùy chọn List Shared
+			MenuItem renameItem = new MenuItem("Rename");
+			renameItem.setOnAction(event -> renamefile(fileNode, fileLabel));
+			contextMenu.getItems().add(renameItem);
+
+			// Tùy chọn Remove
+			MenuItem removeItem = new MenuItem("Remove");
+			removeItem.setOnAction(event -> removeFile(fileNode.getId()));
+			contextMenu.getItems().add(removeItem);
 		} else {
 			// Tùy chọn Download
 			MenuItem downloadItem = new MenuItem("Download");
@@ -672,12 +579,7 @@ public class MainController {
 			// Tùy chọn Share
 			MenuItem shareItem = new MenuItem("Share");
 			shareItem.setOnAction(event -> {
-				TextInputDialog dialog = new TextInputDialog();
-				dialog.setTitle("Nhập MSSV");
-				dialog.setHeaderText("Chia sẻ file với người khác");
-				dialog.setContentText("Nhập MSSV của người nhận:");
-				Optional<String> result = dialog.showAndWait();
-				result.ifPresent(mssvgest -> shareFile(fileNode.getId(), mssvgest));
+				showCustomShareDialog(fileNode, false);
 			});
 			contextMenu.getItems().add(shareItem);
 
@@ -693,7 +595,7 @@ public class MainController {
 
 			// Tùy chọn Remove
 			MenuItem removeItem = new MenuItem("Remove");
-			removeItem.setOnAction(event -> removeFile(fileNode.getId())); // Gửi yêu cầu xóa file lên server
+			removeItem.setOnAction(event -> removeFile(fileNode.getId()));
 			contextMenu.getItems().add(removeItem);
 		}
 
@@ -704,13 +606,21 @@ public class MainController {
 		ContextMenu contextMenu = new ContextMenu();
 		contextMenu.setStyle("-fx-font-size: 14px;");
 
-		// Kiểm tra nếu currentFunction là "GetGuestFileName"
 		if ("GetGuestFileName".equals(currentFunction)) {
-			// Chỉ thêm tùy chọn Download
+			// tùy chọn Download
 			MenuItem downloadItem = new MenuItem("Download");
 			downloadItem.setOnAction(
 					event -> downloadFolder(folderNode.getId(), (Stage) folderLabel.getScene().getWindow()));
 			contextMenu.getItems().add(downloadItem);
+			// Tùy chọn List Shared
+			MenuItem renameItem = new MenuItem("Rename");
+			renameItem.setOnAction(event -> renameFolder(folderNode, folderLabel));
+			contextMenu.getItems().add(renameItem);
+
+			// Tùy chọn Remove
+			MenuItem removeItem = new MenuItem("Remove");
+			removeItem.setOnAction(event -> removeFolder(folderNode.getId()));
+			contextMenu.getItems().add(removeItem);
 		} else {
 			// Tùy chọn Download
 			MenuItem downloadItem = new MenuItem("Download");
@@ -721,12 +631,7 @@ public class MainController {
 			// Tùy chọn Share
 			MenuItem shareItem = new MenuItem("Share");
 			shareItem.setOnAction(event -> {
-				TextInputDialog dialog = new TextInputDialog();
-				dialog.setTitle("Nhập MSSV");
-				dialog.setHeaderText("Chia sẻ thư mục với người khác");
-				dialog.setContentText("Nhập MSSV của người nhận:");
-				Optional<String> result = dialog.showAndWait();
-				result.ifPresent(mssvgest -> shareFolder(folderNode.getId(), mssvgest));
+				showCustomShareDialog(folderNode, true);
 			});
 			contextMenu.getItems().add(shareItem);
 
@@ -742,7 +647,7 @@ public class MainController {
 
 			// Tùy chọn Remove
 			MenuItem removeItem = new MenuItem("Remove");
-			removeItem.setOnAction(event -> removeFolder(folderNode.getId())); // Gửi yêu cầu xóa thư mục lên server
+			removeItem.setOnAction(event -> removeFolder(folderNode.getId()));
 			contextMenu.getItems().add(removeItem);
 		}
 
@@ -757,132 +662,230 @@ public class MainController {
 		alert.showAndWait();
 	}
 
+//Doi ten
+
+
 	private void renamefile(FileNode fileNode, Label fileLabel) {
-		// Tạo một TextField để người dùng nhập tên mới
-		TextField renameField = new TextField(fileLabel.getText()); // Gán giá trị ban đầu là tên hiện tại
-		renameField.setStyle("-fx-font-size: 14px;");
+	    // Tạo TextField để nhập tên mới
+	    TextField renameField = new TextField(fileNode.getName());
+	    renameField.setStyle("-fx-font-size: 14px;");
 
-		// Gán sự kiện khi người dùng nhấn Enter sau khi nhập tên mới
-		renameField.setOnAction(event -> {
-			String newFileName = renameField.getText();
+	    // Tạo Popup để chứa TextField
+	    Popup popup = new Popup();
+	    popup.getContent().add(renameField);
+	    popup.setAutoHide(true); // Ẩn popup khi click ra ngoài
 
-			// Cập nhật tên tệp ngay trên UI
-			fileLabel.setText(newFileName);
-			fileNode.setName(newFileName); // Cập nhật đối tượng FileNode
+	    // Lấy vị trí của Label để hiển thị Popup
+	    Point2D labelPos = fileLabel.localToScreen(0, 0);
 
-			// Gửi yêu cầu đổi tên lên server
-			sendRenameRequest(fileNode.getId(), newFileName);
+	    // Hiển thị Popup
+	    popup.show(fileLabel.getScene().getWindow(), labelPos.getX(), labelPos.getY() + fileLabel.getHeight());
 
-			// Thay thế TextField bằng Label trở lại
-			GridPane gridPane = (GridPane) fileLabel.getParent(); // Lấy GridPane làm cha của label
-			gridPane.getChildren().set(gridPane.getChildren().indexOf(renameField), fileLabel); // Thay TextField bằng
-																								// Label
-		});
+	    // Focus vào TextField
+	    renameField.requestFocus();
 
-		// Thêm TextField vào GridPane (thay thế Label tạm thời)
-		GridPane gridPane = (GridPane) fileLabel.getParent(); // Lấy GridPane làm cha của label
-		int colIndex = GridPane.getColumnIndex(fileLabel);
-		int rowIndex = GridPane.getRowIndex(fileLabel);
-		gridPane.add(renameField, colIndex, rowIndex); // Thêm TextField vào đúng vị trí
-		gridPane.getChildren().remove(fileLabel); // Loại bỏ Label khỏi GridPane
+	    // Xử lý sự kiện khi người dùng nhấn Enter
+	    renameField.setOnAction(event -> {
+	        String newName = renameField.getText();
+
+	        // Kiểm tra tên mới hợp lệ
+	        if (newName == null || newName.trim().isEmpty()) {
+	            showAlert(Alert.AlertType.WARNING, "Lỗi", "Tên file không được để trống.");
+	            return;
+	        }
+
+	        // Ẩn Popup
+	        popup.hide();
+
+	        // Gửi yêu cầu đổi tên lên server
+	        renameFileRequest(fileNode.getId(), newName, fileNode);
+	    });
+
+	    // Xử lý sự kiện khi người dùng nhấn ESC
+	    renameField.setOnKeyPressed(event -> {
+	        if (event.getCode() == KeyCode.ESCAPE) {
+	            popup.hide();
+	        }
+	    });
 	}
 
-	private void renameFolder(FileNode fileNode, Label fileLabel) {
-		// Tạo một TextField để người dùng nhập tên mới
-		TextField renameField = new TextField(fileLabel.getText()); // Gán giá trị ban đầu là tên hiện tại
-		renameField.setStyle("-fx-font-size: 14px;");
+	private void renameFolder(FileNode folderNode, Label folderLabel) {
+	    // Tạo TextField để nhập tên mới
+	    TextField renameField = new TextField(folderNode.getName());
+	    renameField.setStyle("-fx-font-size: 14px;");
 
-		// Gán sự kiện khi người dùng nhấn Enter sau khi nhập tên mới
-		renameField.setOnAction(event -> {
-			String newFileName = renameField.getText();
+	    // Tạo Popup để chứa TextField
+	    Popup popup = new Popup();
+	    popup.getContent().add(renameField);
+	    popup.setAutoHide(true); // Ẩn popup khi click ra ngoài
 
-			// Cập nhật tên tệp ngay trên UI
-			fileLabel.setText(newFileName);
-			fileNode.setName(newFileName); // Cập nhật đối tượng FileNode
+	    // Lấy vị trí của Label để hiển thị Popup
+	    Point2D labelPos = folderLabel.localToScreen(0, 0);
 
-			// Gửi yêu cầu đổi tên lên server
-			renameFolderOnServer(fileNode.getId(), newFileName);
+	    // Hiển thị Popup
+	    popup.show(folderLabel.getScene().getWindow(), labelPos.getX(), labelPos.getY() + folderLabel.getHeight());
 
-			// Thay thế TextField bằng Label trở lại
-			Parent parent = fileLabel.getParent();
-			if (parent instanceof GridPane) {
-				GridPane gridPane = (GridPane) parent;
-				gridPane.getChildren().set(gridPane.getChildren().indexOf(renameField), fileLabel); // Thay TextField
-																									// bằng Label
-			} else if (parent instanceof HBox) {
-				// Xử lý HBox (nếu cần)
-			}
-		});
+	    // Focus vào TextField
+	    renameField.requestFocus();
 
-		// Thêm TextField vào GridPane (thay thế Label tạm thời)
-		Parent parent = fileLabel.getParent();
-		if (parent instanceof GridPane) {
-			GridPane gridPane = (GridPane) parent;
-			int colIndex = GridPane.getColumnIndex(fileLabel); // Sử dụng phương thức static
-			int rowIndex = GridPane.getRowIndex(fileLabel); // Sử dụng phương thức static
+	    // Xử lý sự kiện khi người dùng nhấn Enter
+	    renameField.setOnAction(event -> {
+	        String newName = renameField.getText();
 
-			// Đảm bảo thêm TextField vào đúng vị trí trong GridPane
-			gridPane.add(renameField, colIndex, rowIndex); // Thêm TextField vào đúng vị trí
-			gridPane.getChildren().remove(fileLabel); // Loại bỏ Label khỏi GridPane
-		} else if (parent instanceof HBox) {
-			// Nếu bố cục HBox, thêm logic cần thiết vào đây
-			// Ví dụ: Thêm TextField vào HBox, thay thế Label
-		}
+	        // Kiểm tra tên mới hợp lệ
+	        if (newName == null || newName.trim().isEmpty()) {
+	            showAlert(Alert.AlertType.WARNING, "Lỗi", "Tên thư mục không được để trống.");
+	            return;
+	        }
 
-		// Đảm bảo layout được cập nhật lại nếu cần
-		if (parent != null) {
-			parent.requestLayout();
-		}
+	        // Ẩn Popup
+	        popup.hide();
+
+	        // Gửi yêu cầu đổi tên lên server
+	        renameFolderRequest(folderNode.getId(), newName, folderNode);
+	    });
+
+	    // Xử lý sự kiện khi người dùng nhấn ESC
+	    renameField.setOnKeyPressed(event -> {
+	        if (event.getCode() == KeyCode.ESCAPE) {
+	            popup.hide();
+	        }
+	    });
 	}
 
-	private void renameFolderOnServer(String id, String newName) {
-		try {
-			// Tạo kết nối tới server
-			Socket socket = new Socket(ServerConfig.SERVER_IP, ServerConfig.SERVER_PORT);
-			DataOutputStream dos = new DataOutputStream(socket.getOutputStream());
-			dos.writeUTF("ChangeFolderName");
-			dos.writeUTF(mssv); // Gửi MSSV
-			dos.writeUTF(id); // Gửi ID (FileID hoặc FolderID)
-			dos.writeUTF(newName); // Gửi tên mới
+//	private void renameFolderRequest(String id, String newName) {
+//		try {
+//			// Tạo kết nối tới server
+//			Socket socket = new Socket(ServerConfig.SERVER_IP, ServerConfig.SERVER_PORT);
+//			DataOutputStream dos = new DataOutputStream(socket.getOutputStream());
+//			dos.writeUTF("ChangeFolderName");
+//			dos.writeUTF(mssv); // Gửi MSSV
+//			dos.writeUTF(id); // Gửi ID (FileID hoặc FolderID)
+//			dos.writeUTF(newName); // Gửi tên mới
+//
+//			DataInputStream dis = new DataInputStream(socket.getInputStream());
+//			String response = dis.readUTF();
+//
+//			if (response.equals("Folder renamed successfully.")) {
+//				showAlert(Alert.AlertType.INFORMATION, "Thành công", "Đổi tên thư mục thành công!");
+//			} else {
+//				showAlert(Alert.AlertType.ERROR, "Lỗi", "Đổi tên thư mục thất bại!");
+//			}
+//
+//			dis.close();
+//			dos.close();
+//			socket.close();
+//		} catch (IOException e) {
+//			e.printStackTrace();
+//		}
+//	}
+//
+//	private void renameFileRequest(String id, String newName) {
+//		try {
+//			// Tạo kết nối tới server
+//			Socket socket = new Socket(ServerConfig.SERVER_IP, ServerConfig.SERVER_PORT);
+//			DataOutputStream dos = new DataOutputStream(socket.getOutputStream());
+//			dos.writeUTF("RenameFile");
+//			dos.writeUTF(mssv); // Gửi MSSV
+//			dos.writeUTF(id); // Gửi ID (FileID hoặc FolderID)
+//			dos.writeUTF(newName); // Gửi tên mới
+//
+//			DataInputStream dis = new DataInputStream(socket.getInputStream());
+//			String response = dis.readUTF();
+//
+//			if (response.equals("Rename successfully")) {
+//				showAlert(Alert.AlertType.INFORMATION, "Thành công", "Đổi tên file thành công!");
+//			} else {
+//				showAlert(Alert.AlertType.ERROR, "Lỗi", "Đổi tên file thất bại!");
+//			}
+//
+//			dis.close();
+//			dos.close();
+//			socket.close();
+//		} catch (IOException e) {
+//			e.printStackTrace();
+//		}
+//	}
+	private void renameFolderRequest(String id, String newName, FileNode folderNode) {
+	    try {
+	        // Tạo kết nối tới server
+	        Socket socket = new Socket(ServerConfig.SERVER_IP, ServerConfig.SERVER_PORT);
+	        DataOutputStream dos = new DataOutputStream(socket.getOutputStream());
+	        dos.writeUTF("ChangeFolderName");
+	        dos.writeUTF(mssv); // Gửi MSSV
+	        dos.writeUTF(id); // Gửi ID
+	        dos.writeUTF(newName); // Gửi tên mới
 
-			// Đợi phản hồi từ server
-			DataInputStream dis = new DataInputStream(socket.getInputStream());
-			String response = dis.readUTF();
-			System.out.println("Server response: " + response);
+	        DataInputStream dis = new DataInputStream(socket.getInputStream());
+	        String response = dis.readUTF();
 
-			dis.close();
-			dos.close();
-			socket.close();
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
+	        // Xử lý response từ server
+	        Platform.runLater(() -> {
+	            if (response.equals("Folder renamed successfully.")) {
+	                showAlert(Alert.AlertType.INFORMATION, "Thành công", "Đổi tên thư mục thành công!");
+	                folderNode.setName(newName); // Cập nhật tên trong FileNode
+	            } else {
+	                showAlert(Alert.AlertType.ERROR, "Lỗi", "Đổi tên thư mục thất bại!");
+	            }
+
+	            // Cập nhật lại giao diện sau khi nhận phản hồi từ server
+	            if (!currentFolderId.equals(root)) {
+	                loadFolderFromServer(currentFolderId, fileManager);
+	            } else {
+	                loadFiles(currentFunction);
+	            }
+	        });
+
+	        dis.close();
+	        dos.close();
+	        socket.close();
+	    } catch (IOException e) {
+	        e.printStackTrace();
+	        Platform.runLater(() -> showAlert(Alert.AlertType.ERROR, "Lỗi", "Lỗi kết nối đến server!"));
+	    }
 	}
 
-	private void sendRenameRequest(String id, String newName) {
-		try {
-			// Tạo kết nối tới server
-			Socket socket = new Socket(ServerConfig.SERVER_IP, ServerConfig.SERVER_PORT);
-			DataOutputStream dos = new DataOutputStream(socket.getOutputStream());
-			dos.writeUTF("RenameFile");
-			dos.writeUTF(mssv); // Gửi MSSV
-			dos.writeUTF(id); // Gửi ID (FileID hoặc FolderID)
-			dos.writeUTF(newName); // Gửi tên mới
+	private void renameFileRequest(String id, String newName, FileNode fileNode) {
+	    try {
+	        // Tạo kết nối tới server
+	        Socket socket = new Socket(ServerConfig.SERVER_IP, ServerConfig.SERVER_PORT);
+	        DataOutputStream dos = new DataOutputStream(socket.getOutputStream());
+	        dos.writeUTF("RenameFile");
+	        dos.writeUTF(mssv); // Gửi MSSV
+	        dos.writeUTF(id); // Gửi ID
+	        dos.writeUTF(newName); // Gửi tên mới
 
-			// Đợi phản hồi từ server
-			DataInputStream dis = new DataInputStream(socket.getInputStream());
-			String response = dis.readUTF();
-			System.out.println("Server response: " + response);
+	        DataInputStream dis = new DataInputStream(socket.getInputStream());
+	        String response = dis.readUTF();
 
-			dis.close();
-			dos.close();
-			socket.close();
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
+	        // Xử lý response từ server
+	        Platform.runLater(() -> {
+	            if (response.equals("Rename successfully")) {
+	                showAlert(Alert.AlertType.INFORMATION, "Thành công", "Đổi tên file thành công!");
+	                fileNode.setName(newName); // Cập nhật tên trong FileNode
+	            } else {
+	                showAlert(Alert.AlertType.ERROR, "Lỗi", "Đổi tên file thất bại!");
+	            }
+
+	            // Cập nhật lại giao diện sau khi nhận phản hồi từ server
+	            if (!currentFolderId.equals(root)) {
+	                loadFolderFromServer(currentFolderId, fileManager);
+	            } else {
+	                loadFiles(currentFunction);
+	            }
+	        });
+
+	        dis.close();
+	        dos.close();
+	        socket.close();
+	    } catch (IOException e) {
+	        e.printStackTrace();
+	        Platform.runLater(() -> showAlert(Alert.AlertType.ERROR, "Lỗi", "Lỗi kết nối đến server!"));
+	    }
 	}
 
+//Download
 	private void downloadFile(String fileId, Stage stage) {
-		// Hiển thị hộp thoại xác nhận tải xuống
 		Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
 		alert.setTitle("Download File");
 		alert.setHeaderText("Download File");
@@ -890,27 +893,22 @@ public class MainController {
 
 		Optional<ButtonType> result = alert.showAndWait();
 		if (result.isPresent() && result.get() == ButtonType.OK) {
-			// Hiển thị DirectoryChooser để người dùng chọn thư mục lưu file
 			DirectoryChooser directoryChooser = new DirectoryChooser();
 			directoryChooser.setTitle("Chọn thư mục để lưu file");
 			File selectedDirectory = directoryChooser.showDialog(stage);
 
-			// Kiểm tra nếu người dùng không chọn thư mục nào
 			if (selectedDirectory == null) {
 				System.out.println("Không có thư mục nào được chọn. Hủy tải file.");
 				return;
 			}
 
-			// Gửi yêu cầu tải xuống đến server và lưu vào thư mục đã chọn
 			try (Socket socket = new Socket(ServerConfig.SERVER_IP, ServerConfig.SERVER_PORT);
 					DataOutputStream dos = new DataOutputStream(socket.getOutputStream());
 					DataInputStream dis = new DataInputStream(socket.getInputStream())) {
 
-				// Gửi yêu cầu tải file và ID file đến server
-				dos.writeUTF("DownloadFile"); // Gửi yêu cầu tải file
-				dos.writeUTF(fileId); // Gửi ID file
+				dos.writeUTF("DownloadFile");
+				dos.writeUTF(fileId);
 
-				// Nhận và lưu file từ server vào thư mục đã chọn
 				receiveFile(dis, selectedDirectory);
 
 			} catch (IOException e) {
@@ -921,8 +919,8 @@ public class MainController {
 	}
 
 	private void receiveFile(DataInputStream dis, File selectedDirectory) throws IOException {
-		String fileName = dis.readUTF(); // Lấy tên file ZIP từ server
-		File zipFile = new File(selectedDirectory, "temp_" + fileName + ".zip"); // Đường dẫn tạm trong thư mục đã chọn
+		String fileName = dis.readUTF();
+		File zipFile = new File(selectedDirectory, "temp_" + fileName + ".zip");
 
 		try (FileOutputStream fos = new FileOutputStream(zipFile);
 				BufferedOutputStream bos = new BufferedOutputStream(fos)) {
@@ -930,27 +928,22 @@ public class MainController {
 			byte[] buffer = new byte[4096];
 			int bytesRead;
 
-			// Đọc và ghi dữ liệu vào file ZIP tạm
 			while ((bytesRead = dis.read(buffer)) > 0) {
 				bos.write(buffer, 0, bytesRead);
 			}
 			bos.flush();
 			System.out.println("File ZIP downloaded successfully to: " + zipFile.getAbsolutePath());
 
-			// Kiểm tra nếu file tải về có kích thước 0 (lỗi)
 			if (zipFile.length() == 0) {
 				showAlert(Alert.AlertType.ERROR, "Lỗi tải file", "Tải File thất bại!");
 				return;
 			}
 
-			// Giải nén file ZIP vào thư mục đã chọn
 			extractZipFile(zipFile, selectedDirectory.getAbsolutePath() + File.separator);
 
-			// Hiển thị thông báo tải thành công
 			showAlert(Alert.AlertType.INFORMATION, "Tải file thành công", "File đã được tải xuống thành công!");
 
 		} finally {
-			// Xóa file ZIP tạm sau khi giải nén
 			if (zipFile.exists()) {
 				zipFile.delete();
 			}
@@ -974,7 +967,6 @@ public class MainController {
 
 			while ((entry = zis.getNextEntry()) != null) {
 				File newFile = new File(destDir, entry.getName());
-				// Kiểm tra nếu file đã tồn tại, thay đổi tên file
 				if (newFile.exists()) {
 					String fileNameWithoutExtension = getFileNameWithoutExtension(newFile);
 					String extension = getFileExtension(newFile);
@@ -1037,7 +1029,6 @@ public class MainController {
 	}
 
 	private void downloadFolder(String folderId, Stage stage) {
-		// Hiển thị hộp thoại xác nhận tải xuống
 		Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
 		alert.setTitle("Download Folder");
 		alert.setHeaderText("Download Folder");
@@ -1045,7 +1036,6 @@ public class MainController {
 
 		Optional<ButtonType> result = alert.showAndWait();
 		if (result.isPresent() && result.get() == ButtonType.OK) {
-			// Hiển thị DirectoryChooser để người dùng chọn thư mục lưu folder
 			DirectoryChooser directoryChooser = new DirectoryChooser();
 			directoryChooser.setTitle("Chọn thư mục để lưu folder");
 			File selectedDirectory = directoryChooser.showDialog(stage);
@@ -1059,11 +1049,9 @@ public class MainController {
 					DataOutputStream dos = new DataOutputStream(socket.getOutputStream());
 					DataInputStream dis = new DataInputStream(socket.getInputStream())) {
 
-				// Gửi yêu cầu tải folder và ID folder đến server
 				dos.writeUTF("DownloadFolder");
 				dos.writeUTF(folderId);
 
-				// Nhận và lưu file ZIP từ server
 				receiveFolder(dis, selectedDirectory);
 
 			} catch (IOException e) {
@@ -1075,22 +1063,19 @@ public class MainController {
 
 	public void receiveFolder(DataInputStream dis, File selectedDirectory) throws IOException {
 		try {
-			// Nhận tên file và kích thước file từ server
-			String fileName = dis.readUTF(); // Nhận tên file từ server
-			String fileSizeStr = dis.readUTF(); // Nhận kích thước file dưới dạng String
+			String fileName = dis.readUTF();
+			String fileSizeStr = dis.readUTF();
 
 			long fileSize = Long.parseLong(fileSizeStr);
-			// Tạo file tại thư mục đích
-			File file = new File(selectedDirectory, fileName); // Đảm bảo file có đuôi .zip
+			File file = new File(selectedDirectory, fileName);
 
 			try (FileOutputStream fos = new FileOutputStream(file);
 					BufferedOutputStream bos = new BufferedOutputStream(fos)) {
 
-				byte[] buffer = new byte[8192]; // Dùng bộ đệm để đọc file
+				byte[] buffer = new byte[8192];
 				long totalBytesRead = 0;
 				int bytesRead;
 
-				// Đọc dữ liệu từ server và ghi vào file
 				while (totalBytesRead < fileSize && (bytesRead = dis.read(buffer)) != -1) {
 					bos.write(buffer, 0, bytesRead);
 					totalBytesRead += bytesRead;
@@ -1110,17 +1095,111 @@ public class MainController {
 		}
 	}
 
-	private void shareFile(String fileId, String mssvgest) {
+//Share	
+	private List<String> getRolesFromServer() {
+		List<String> roles = new ArrayList<>();
 		try {
 			Socket socket = new Socket(ServerConfig.SERVER_IP, ServerConfig.SERVER_PORT);
 			DataInputStream dis = new DataInputStream(socket.getInputStream());
 			DataOutputStream dos = new DataOutputStream(socket.getOutputStream());
 
+			dos.writeUTF("GetAllFileRole");
+
+			String response = dis.readUTF();
+			// Xử lý response: 0,Admin;1,Read_Write;2,Read_only
+			String[] roleParts = response.split(";");
+			for (String part : roleParts) {
+				String[] roleInfo = part.split(",");
+				if (roleInfo.length == 2) {
+					// Lọc bỏ role "Admin" (roleId = 0)
+					if (!roleInfo[0].equals("0")) {
+						roles.add(roleInfo[1]); // Thêm roleName vào danh sách
+					}
+				}
+			}
+
+			dis.close();
+			dos.close();
+			socket.close();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		return roles;
+	}
+
+	private void showCustomShareDialog(FileNode node, boolean isFolder) {
+		Dialog<Pair<String, String>> dialog = new Dialog<>();
+		dialog.setTitle("Chia sẻ");
+		dialog.setHeaderText((isFolder ? "Chia sẻ thư mục" : "Chia sẻ file") + " với người khác");
+
+		// Thêm các nút
+		dialog.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
+
+		// Tạo GridPane để chứa các thành phần
+		GridPane grid = new GridPane();
+		grid.setHgap(10);
+		grid.setVgap(10);
+		grid.setPadding(new Insets(20, 150, 10, 10));
+
+		// Tạo TextField để nhập MSSV
+		TextField mssvField = new TextField();
+		mssvField.setPromptText("Nhập MSSV");
+
+		// Lấy danh sách quyền từ server
+		List<String> roles = getRolesFromServer();
+
+		// Tạo ComboBox để chọn quyền
+		ComboBox<String> roleComboBox = new ComboBox<>();
+		roleComboBox.getItems().addAll(roles);
+		roleComboBox.setValue(roles.isEmpty() ? "" : roles.get(0)); // Chọn quyền mặc định nếu có
+
+		// Thêm các thành phần vào GridPane
+		grid.add(new Label("MSSV:"), 0, 0);
+		grid.add(mssvField, 1, 0);
+		grid.add(new Label("Chọn quyền:"), 0, 1);
+		grid.add(roleComboBox, 1, 1);
+
+		// Thêm GridPane vào Dialog
+		dialog.getDialogPane().setContent(grid);
+
+		// Chuyển đổi kết quả khi nhấn OK
+		dialog.setResultConverter(dialogButton -> {
+			if (dialogButton == ButtonType.OK) {
+				return new Pair<>(mssvField.getText(), roleComboBox.getValue());
+			}
+			return null;
+		});
+
+		Optional<Pair<String, String>> result = dialog.showAndWait();
+
+		result.ifPresent(mssvRole -> {
+			String mssv = mssvRole.getKey();
+			String roleName = mssvRole.getValue();
+			String roleId = getRoleIdFromName(roleName);
+
+			if (isFolder) {
+				shareFolder(node.getId(), mssv, roleId);
+				listSharedUsersfolder(node.getId());
+			} else {
+				shareFile(node.getId(), mssv, roleId);
+				listSharedUsers(node.getId());
+			}
+		});
+	}
+
+	private void shareFile(String fileId, String mssvgest, String roleId) {
+		try {
+
+			Socket socket = new Socket(ServerConfig.SERVER_IP, ServerConfig.SERVER_PORT);
+			DataInputStream dis = new DataInputStream(socket.getInputStream());
+			DataOutputStream dos = new DataOutputStream(socket.getOutputStream());
+
 			// Gửi yêu cầu chia sẻ đến server
-			dos.writeUTF("AddGuest"); // Gửi lệnh SHARE
+			dos.writeUTF("AddGuest");
 			dos.writeUTF(mssv);
-			dos.writeUTF(mssvgest); // Gửi MSSV của người muốn chia sẻ
-			dos.writeUTF(fileId); // Gửi ID file
+			dos.writeUTF(mssvgest);
+			dos.writeUTF(fileId);
+			dos.writeUTF(roleId); // Gửi thêm roleId
 
 			// Nhận phản hồi từ server
 			String response = dis.readUTF();
@@ -1132,7 +1211,7 @@ public class MainController {
 
 			// Hiển thị thông báo cho người dùng
 			if (response.equals("Share file successfully")) {
-				showAlert(Alert.AlertType.INFORMATION, "Chia sẻ thành công", "File đã được chia sẻ với " + mssv);
+				showAlert(Alert.AlertType.INFORMATION, "Chia sẻ thành công", "File đã được chia sẻ với " + mssvgest);
 			} else {
 				showAlert(Alert.AlertType.ERROR, "Chia sẻ thất bại", "Không thể chia sẻ file.");
 			}
@@ -1142,17 +1221,19 @@ public class MainController {
 		}
 	}
 
-	private void shareFolder(String folderId, String mssvgest) {
+	private void shareFolder(String folderId, String mssvgest, String roleId) {
 		try {
+
 			Socket socket = new Socket(ServerConfig.SERVER_IP, ServerConfig.SERVER_PORT);
 			DataInputStream dis = new DataInputStream(socket.getInputStream());
 			DataOutputStream dos = new DataOutputStream(socket.getOutputStream());
 
 			// Gửi yêu cầu chia sẻ đến server
-			dos.writeUTF("ShareFolder"); // Gửi lệnh chia sẻ thư mục
-			dos.writeUTF(mssv); // Gửi MSSV của người chia sẻ
-			dos.writeUTF(folderId); // Gửi ID thư mục
-			dos.writeUTF(mssvgest); // Gửi MSSV của người nhận
+			dos.writeUTF("ShareFolder");
+			dos.writeUTF(mssv);
+			dos.writeUTF(folderId);
+			dos.writeUTF(mssvgest);
+			dos.writeUTF(roleId); // Gửi thêm roleId
 
 			// Nhận phản hồi từ server
 			String response = dis.readUTF();
@@ -1172,6 +1253,32 @@ public class MainController {
 			e.printStackTrace();
 			showAlert(Alert.AlertType.ERROR, "Lỗi chia sẻ", "Lỗi khi kết nối đến server: " + e.getMessage());
 		}
+	}
+
+	private String getRoleIdFromName(String roleName) {
+		try {
+			Socket socket = new Socket(ServerConfig.SERVER_IP, ServerConfig.SERVER_PORT);
+			DataInputStream dis = new DataInputStream(socket.getInputStream());
+			DataOutputStream dos = new DataOutputStream(socket.getOutputStream());
+
+			dos.writeUTF("GetAllFileRole");
+
+			String response = dis.readUTF();
+			String[] roleParts = response.split(";");
+			for (String part : roleParts) {
+				String[] roleInfo = part.split(",");
+				if (roleInfo.length == 2 && roleInfo[1].equals(roleName)) {
+					return roleInfo[0];
+				}
+			}
+
+			dis.close();
+			dos.close();
+			socket.close();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		return null; // Default roleId
 	}
 
 //Xóa
@@ -1215,58 +1322,6 @@ public class MainController {
 		}
 	}
 
-//	private void removeFile(String fileId) {
-//		System.out.println("Attempting to delete file. File ID: " + fileId);
-//		System.out.println("Sending MSSV: " + mssv); // Print MSSV being sent
-//
-//		// Ensure the operation is done asynchronously
-//		new Thread(() -> {
-//			try (Socket socket = new Socket(ServerConfig.SERVER_IP, ServerConfig.SERVER_PORT);
-//					DataInputStream dis = new DataInputStream(socket.getInputStream());
-//					DataOutputStream dos = new DataOutputStream(socket.getOutputStream())) {
-//
-//				// Send the request to delete the file
-//				dos.writeUTF("DeleteFile");
-//				dos.writeUTF(mssv); // Send MSSV of the user
-//				dos.writeUTF(fileId); // Send the file ID
-//
-//				System.out.println("Sent MSSV: " + mssv); // Confirm that MSSV is sent
-//				System.out.println("Sent File ID: " + fileId); // Confirm that File ID is sent
-//
-//				// Get the response from the server
-//				String response = dis.readUTF();
-//				System.out.println("Server response: " + response);
-//
-//				// Handle the response
-//				if (response.equals("Delete file successfully")) {
-//					// File deletion was successful
-//					Platform.runLater(() -> {
-//						showAlert(Alert.AlertType.INFORMATION, "Xóa file thành công", "File đã được xóa thành công.");
-//						// Remove the file from the FileManager
-//						if (!currentFolderId.equals(root)) {
-//							fileManager.removeFile(currentFolderId, fileId);
-//							loadFolderFromServer(currentFolderId, fileManager);
-//						} else {
-//							loadFiles(currentFunction);
-//						}
-//					});
-//				} else {
-//					// File deletion failed
-//					Platform.runLater(() -> {
-//						showAlert(Alert.AlertType.ERROR, "Xóa file thất bại", "Không thể xóa file.");
-//					});
-//				}
-//
-//			} catch (IOException e) {
-//				// Handle the exception
-//				e.printStackTrace();
-//				Platform.runLater(() -> {
-//					showAlert(Alert.AlertType.ERROR, "Lỗi kết nối", "Đã xảy ra lỗi khi kết nối với server.");
-//				});
-//			}
-//		}).start(); // Run the file deletion operation in a separate thread
-//	}
-
 	private void removeFolder(String folderId) {
 		try {
 			Socket socket = new Socket(ServerConfig.SERVER_IP, ServerConfig.SERVER_PORT);
@@ -1304,45 +1359,8 @@ public class MainController {
 			System.out.println("Error while removing folder: " + e.getMessage());
 		}
 	}
-//	private void removeFolder(String folderId) {
-//
-//		new Thread(() -> {
-//			try (Socket socket = new Socket(ServerConfig.SERVER_IP, ServerConfig.SERVER_PORT);
-//					DataInputStream dis = new DataInputStream(socket.getInputStream());
-//					DataOutputStream dos = new DataOutputStream(socket.getOutputStream())) {
-//
-//				dos.writeUTF("DeleteFolder");
-//				dos.writeUTF(mssv);
-//				dos.writeUTF(folderId);
-//
-//				String response = dis.readUTF();
-//				System.out.println("Server response: " + response);
-//
-//				if (response.equals("Delete Folder successfully.")) {
-//					Platform.runLater(() -> {
-//						showAlert(Alert.AlertType.INFORMATION, "Xóa folder  thành công", "Folder đã được xóa thành công.");
-//						if (!currentFolderId.equals(root)) {
-//							fileManager.removeFolder(currentFolderId, folderId);
-//							loadFolderFromServer(currentFolderId, fileManager);
-//						} else {
-//							loadFiles(currentFunction);
-//						}
-//					});
-//				} else {
-//					Platform.runLater(() -> {
-//						showAlert(Alert.AlertType.ERROR, "Xóa folder thất bại", "Không thể xóa folder.");
-//					});
-//				}
-//
-//			} catch (IOException e) {
-//				e.printStackTrace();
-//				Platform.runLater(() -> {
-//					showAlert(Alert.AlertType.ERROR, "Lỗi kết nối", "Đã xảy ra lỗi khi kết nối với server.");
-//				});
-//			}
-//		}).start(); // Run the folder deletion operation in a separate thread
-//	}
 
+//Danh sach chia se
 	private void listSharedUsers(String fileId) {
 		try {
 			// Tạo kết nối đến server
@@ -1357,20 +1375,43 @@ public class MainController {
 
 			// Nhận danh sách người dùng đã chia sẻ file
 			String response = dis.readUTF();
+			System.out.println("Received from server: " + response);
 
 			if (response.equals("ERR")) {
 				System.out.println("Lỗi khi tìm người xem file.");
 			} else {
 				// Tạo ListView hiển thị danh sách người dùng đã chia sẻ
-				ListView<String> sharedUsersList = new ListView<>();
+				ListView<HBox> sharedUsersList = new ListView<>();
+				sharedUsersList.setStyle("-fx-font-size: 14px;");
 
 				// Tách danh sách người dùng và thêm vào ListView
-				String[] users = response.split(",");
-				sharedUsersList.getItems().addAll(users);
+				String[] users = response.split(";");
+				for (String user : users) {
+					String[] userInfo = user.split(",");
+					if (userInfo.length == 3) {
+						String userId = userInfo[0];
+						String roleId = userInfo[1];
+						String roleName = userInfo[2];
+
+						Label userLabel = new Label(userId);
+						Label roleLabel = new Label(" - " + roleName);
+
+						Button editButton = new Button("Chỉnh sửa");
+						editButton.setOnAction(e -> {
+							handleEditRole(fileId, userId, roleId, roleLabel);
+						});
+
+						HBox userBox = new HBox(10);
+						userBox.getChildren().addAll(userLabel, roleLabel, editButton);
+						userBox.setAlignment(Pos.CENTER_LEFT); // Căn giữa theo chiều dọc
+
+						sharedUsersList.getItems().add(userBox);
+					}
+				}
 
 				// Tạo Dialog để hiển thị ListView
 				Dialog<String> dialog = new Dialog<>();
-				dialog.setTitle("Danh sách được chia sẽ");
+				dialog.setTitle("Danh sách được chia sẻ");
 				dialog.getDialogPane().setContent(sharedUsersList);
 				dialog.getDialogPane().getButtonTypes().add(ButtonType.OK);
 				dialog.showAndWait();
@@ -1385,34 +1426,57 @@ public class MainController {
 		}
 	}
 
-	private void listSharedUsersfolder(String folderid) {
+	private void listSharedUsersfolder(String folderId) {
 		try {
 			// Tạo kết nối đến server
 			Socket socket = new Socket(ServerConfig.SERVER_IP, ServerConfig.SERVER_PORT);
 			DataInputStream dis = new DataInputStream(socket.getInputStream());
 			DataOutputStream dos = new DataOutputStream(socket.getOutputStream());
 
-			// Gửi yêu cầu lấy danh sách người dùng đã chia sẻ file
+			// Gửi yêu cầu lấy danh sách người dùng đã chia sẻ thư mục
 			dos.writeUTF("GetAllFolderGuest");
 			dos.writeUTF(mssv);
-			dos.writeUTF(folderid);
+			dos.writeUTF(folderId);
 
-			// Nhận danh sách người dùng đã chia sẻ file
+			// Nhận danh sách người dùng đã chia sẻ thư mục
 			String response = dis.readUTF();
+			System.out.println("Received from server: " + response);
 
 			if (response.equals("ERR")) {
-				System.out.println("Lỗi khi tìm người xem file.");
+				System.out.println("Lỗi khi tìm người xem thư mục.");
 			} else {
 				// Tạo ListView hiển thị danh sách người dùng đã chia sẻ
-				ListView<String> sharedUsersList = new ListView<>();
+				ListView<HBox> sharedUsersList = new ListView<>();
+				sharedUsersList.setStyle("-fx-font-size: 14px;");
 
 				// Tách danh sách người dùng và thêm vào ListView
-				String[] users = response.split(",");
-				sharedUsersList.getItems().addAll(users);
+				String[] users = response.split(";");
+				for (String user : users) {
+					String[] userInfo = user.split(",");
+					if (userInfo.length == 3) {
+						String userId = userInfo[0];
+						String roleId = userInfo[1];
+						String roleName = userInfo[2];
+
+						Label userLabel = new Label(userId);
+						Label roleLabel = new Label(" - " + roleName);
+
+						Button editButton = new Button("Chỉnh sửa");
+						editButton.setOnAction(e -> {
+							handleEditRoleFolder(folderId, userId, roleId, roleLabel);
+						});
+
+						HBox userBox = new HBox(10);
+						userBox.getChildren().addAll(userLabel, roleLabel, editButton);
+						userBox.setAlignment(Pos.CENTER_LEFT); // Căn giữa theo chiều dọc
+
+						sharedUsersList.getItems().add(userBox);
+					}
+				}
 
 				// Tạo Dialog để hiển thị ListView
 				Dialog<String> dialog = new Dialog<>();
-				dialog.setTitle("Danh sách được chia sẽ");
+				dialog.setTitle("Danh sách được chia sẻ");
 				dialog.getDialogPane().setContent(sharedUsersList);
 				dialog.getDialogPane().getButtonTypes().add(ButtonType.OK);
 				dialog.showAndWait();
@@ -1427,143 +1491,262 @@ public class MainController {
 		}
 	}
 
-//	@FXML
-//	public void handleShowUploadOptions() {
-//		try {
-//			// Tải file FXML
-//			FXMLLoader loader = new FXMLLoader(getClass().getResource("UploadOptions.fxml"));
-//			VBox uploadOptionsLayout = loader.load();
-//
-//			// Lấy controller của FXML và thiết lập tham chiếu tới MainController
-//			UploadOptionsController controller = loader.getController();
-//			controller.setMainController(this);
-//
-//			// Tạo và hiển thị dialog
-//			Stage dialogStage = new Stage();
-//			dialogStage.initModality(Modality.APPLICATION_MODAL);
-//			dialogStage.setScene(new Scene(uploadOptionsLayout));
-//			dialogStage.showAndWait();
-//		} catch (IOException e) {
-//			e.printStackTrace();
-//		}
-//	}
+	private void handleEditRole(String fileId, String userId, String currentRoleId, Label roleLabel) {
+		// ... (phần code tạo dialog và chọn quyền giữ nguyên) ...
+		List<String> roles = getRolesFromServer();
+		roles.remove("Admin"); // Xóa "Admin" khỏi danh sách
 
-//	@FXML
-//	public void handleUploadFile() {
-//		FileChooser fileChooser = new FileChooser();
-//		fileChooser.setTitle("Chọn file để tải lên");
-//		File selectedFile = fileChooser.showOpenDialog(null);
-//
-//		if (selectedFile != null) {
-//			// Compress the file before sending it
-//			String zipFilePath = zipFile(selectedFile.getAbsolutePath()); // Pass the selected file for zipping
-//			if (zipFilePath != null) {
-//				sendFile(zipFilePath, selectedFile.getName()); // Send the compressed file with its name
-//			}
-//		}
-//	}
+		// Tạo ComboBox để chọn quyền
+		ComboBox<String> roleComboBox = new ComboBox<>();
+		roleComboBox.getItems().addAll(roles);
+		roleComboBox.setValue(getRoleNameFromId(currentRoleId)); // Chọn quyền hiện tại
+		roleComboBox.setStyle("-fx-font-size: 14px;");
 
-//	private String zipFile(String filePath) {
-//		// Lấy tên file mà không có đường dẫn
-//		String fileName = new File(filePath).getName();
-//
-//		// Kiểm tra nếu file đã có đuôi .zip thì không thêm nữa
-//		String zipFilePath = filePath.endsWith(".zip") ? filePath : filePath + ".zip";
-//
-//		try (FileOutputStream fos = new FileOutputStream(zipFilePath);
-//				ZipOutputStream zos = new ZipOutputStream(fos);
-//				FileInputStream fis = new FileInputStream(filePath)) {
-//
-//			ZipEntry zipEntry = new ZipEntry(fileName); // Lấy tên file mà không có đường dẫn
-//			zos.putNextEntry(zipEntry);
-//
-//			byte[] buffer = new byte[1024];
-//			int len;
-//			while ((len = fis.read(buffer)) > 0) {
-//				zos.write(buffer, 0, len);
-//			}
-//
-//			zos.closeEntry();
-//			System.out.println("File đã được nén thành công: " + zipFilePath);
-//
-//		} catch (IOException e) {
-//			System.out.println("Lỗi khi nén file: " + e.getMessage());
-//			return null; // Return null if there's an error in zipping
-//		}
-//		return zipFilePath;
-//	}
+		// Tạo Dialog để hiển thị ComboBox
+		Dialog<String> dialog = new Dialog<>();
+		dialog.setTitle("Chỉnh sửa quyền");
+		dialog.setHeaderText("Chỉnh sửa quyền cho " + userId);
+		dialog.getDialogPane().setContent(roleComboBox);
+		dialog.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
 
-//	private void sendFile(String zipFilePath, String fileName) {
-//		try {
-//			File file = new File(zipFilePath);
-//			try (Socket socket = new Socket(ServerConfig.SERVER_IP, ServerConfig.SERVER_PORT);
-//					DataOutputStream dos = new DataOutputStream(socket.getOutputStream());
-//					FileInputStream fis = new FileInputStream(file);
-//					BufferedOutputStream bos = new BufferedOutputStream(dos)) {
-//
-//				dos.writeUTF("UploadFile"); // Gửi loại yêu cầu
-//				dos.writeUTF(mssv); // Gửi MSSV
-//				dos.writeUTF(fileName); // Gửi tên file
-//
-//				// Gửi kích thước file tính bằng KB
-//				double fileSizeInKB = (double) file.length() / 1024;
-//				double roundedFileSizeInKB = Math.round(fileSizeInKB); // Làm tròn đến hàng đơn vị
-//				dos.writeUTF(String.valueOf(roundedFileSizeInKB));
-//
-//				// Gửi dữ liệu file ZIP
-//				byte[] buffer = new byte[1024];
-//				int bytesRead;
-//				while ((bytesRead = fis.read(buffer)) != -1) {
-//					bos.write(buffer, 0, bytesRead);
-//				}
-//
-//				bos.flush();
-//				System.out.println("File đã được gửi tới server!");
-//				
-//
-//			}
-//		} catch (IOException e) {
-//			System.out.println("Lỗi khi gửi file: " + e.getMessage());
-//		}
-//	}
-//	private void sendFile(String zipFilePath, String fileName) {
-//		try {
-//			File file = new File(zipFilePath);
-//			try (Socket socket = new Socket(ServerConfig.SERVER_IP, ServerConfig.SERVER_PORT);
-//					DataOutputStream dos = new DataOutputStream(socket.getOutputStream());
-//					FileInputStream fis = new FileInputStream(file);
-//					BufferedOutputStream bos = new BufferedOutputStream(dos);
-//					DataInputStream dis = new DataInputStream(socket.getInputStream())) { // DataInputStream để nhận
-//																							// phản hồi từ server
-//
-//				dos.writeUTF("UploadFile"); // Gửi loại yêu cầu
-//				dos.writeUTF(mssv); // Gửi MSSV
-//				dos.writeUTF(fileName); // Gửi tên file
-//				dos.writeUTF("2"); // Gửi tên file
-//
-//
-//				// Gửi kích thước file tính bằng KB
-//				double fileSizeInKB = (double) file.length() / 1024;
-//				double roundedFileSizeInKB = Math.round(fileSizeInKB); // Làm tròn đến hàng đơn vị
-//				dos.writeUTF(String.valueOf(roundedFileSizeInKB));
-//
-//				// Gửi dữ liệu file ZIP
-//				byte[] buffer = new byte[1024];
-//				int bytesRead;
-//				while ((bytesRead = fis.read(buffer)) != -1) {
-//					bos.write(buffer, 0, bytesRead);
-//				}
-//
-//				bos.flush();
-//				System.out.println("File đã được gửi tới server!");
-//
-//	            // Nhận phản hồi từ server
-//	            String serverResponse = dis.readUTF();
-//	            System.out.println("Server Response: " + serverResponse);
-//			}
-//		} catch (IOException e) {
-//			System.out.println("Lỗi khi gửi file: " + e.getMessage());
-//		}
-//	}
+		// Xử lý khi nhấn OK
+		dialog.setResultConverter(dialogButton -> {
+			if (dialogButton == ButtonType.OK) {
+				String newRoleName = roleComboBox.getValue();
+				String newRoleId = getRoleIdFromName(newRoleName);
+
+				// Cập nhật roleLabel ngay lập tức
+				roleLabel.setText(" - " + newRoleName);
+
+				// Gửi yêu cầu cập nhật quyền đến server (sử dụng updateFileRole)
+				updateFileRole(fileId, userId, newRoleId);
+				return newRoleId;
+			}
+			return null;
+		});
+
+		dialog.showAndWait();
+	}
+
+	private void handleEditRoleFolder(String folderId, String userId, String currentRoleId, Label roleLabel) {
+		// ... (phần code tạo dialog và chọn quyền giữ nguyên) ...
+		List<String> roles = getRolesFromServer();
+		roles.remove("Admin"); // Xóa "Admin" khỏi danh sách
+
+		// Tạo ComboBox để chọn quyền
+		ComboBox<String> roleComboBox = new ComboBox<>();
+		roleComboBox.getItems().addAll(roles);
+		roleComboBox.setValue(getRoleNameFromId(currentRoleId));
+		roleComboBox.setStyle("-fx-font-size: 14px;");
+
+		// Tạo Dialog để hiển thị ComboBox
+		Dialog<String> dialog = new Dialog<>();
+		dialog.setTitle("Chỉnh sửa quyền");
+		dialog.setHeaderText("Chỉnh sửa quyền cho " + userId);
+		dialog.getDialogPane().setContent(roleComboBox);
+		dialog.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
+
+		// Xử lý khi nhấn OK
+		dialog.setResultConverter(dialogButton -> {
+			if (dialogButton == ButtonType.OK) {
+				String newRoleName = roleComboBox.getValue();
+				String newRoleId = getRoleIdFromName(newRoleName);
+
+				// Cập nhật roleLabel ngay lập tức
+				roleLabel.setText(" - " + newRoleName);
+
+				// Gửi yêu cầu cập nhật quyền đến server (sử dụng updateFolderRole)
+				updateFolderRole(folderId, userId, newRoleId);
+				return newRoleId;
+			}
+			return null;
+		});
+
+		dialog.showAndWait();
+	}
+
+	private void updateFileRole(String fileId, String userId, String roleId) {
+		try {
+			Socket socket = new Socket(ServerConfig.SERVER_IP, ServerConfig.SERVER_PORT);
+			DataInputStream dis = new DataInputStream(socket.getInputStream());
+			DataOutputStream dos = new DataOutputStream(socket.getOutputStream());
+
+			// Gửi yêu cầu cập nhật quyền cho file
+			dos.writeUTF("UpdateFileRole");
+			dos.writeUTF(mssv);
+			dos.writeUTF(fileId);
+			dos.writeUTF(userId);
+			dos.writeUTF(roleId);
+
+			// Nhận phản hồi từ server
+			String response = dis.readUTF();
+			System.out.println("Server response: " + response);
+
+			// Hiển thị thông báo
+			if (response.equals("Update successfully")) {
+				showAlert(Alert.AlertType.INFORMATION, "Thành công", "Cập nhật quyền thành công");
+			} else {
+				showAlert(Alert.AlertType.ERROR, "Lỗi", "Cập nhật quyền thất bại");
+			}
+
+			dis.close();
+			dos.close();
+			socket.close();
+		} catch (IOException e) {
+			e.printStackTrace();
+			showAlert(Alert.AlertType.ERROR, "Lỗi", "Lỗi khi kết nối đến server: " + e.getMessage());
+		}
+	}
+
+	private String getRoleNameFromId(String roleId) {
+		try {
+			Socket socket = new Socket(ServerConfig.SERVER_IP, ServerConfig.SERVER_PORT);
+			DataInputStream dis = new DataInputStream(socket.getInputStream());
+			DataOutputStream dos = new DataOutputStream(socket.getOutputStream());
+
+			dos.writeUTF("GetAllFileRole");
+
+			String response = dis.readUTF();
+			String[] roleParts = response.split(";");
+			for (String part : roleParts) {
+				String[] roleInfo = part.split(",");
+				if (roleInfo.length == 2 && roleInfo[0].equals(roleId)) {
+					return roleInfo[1];
+				}
+			}
+
+			dis.close();
+			dos.close();
+			socket.close();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		return ""; // Default
+	}
+
+	private void updateFolderRole(String folderId, String userId, String roleId) {
+		try {
+			Socket socket = new Socket(ServerConfig.SERVER_IP, ServerConfig.SERVER_PORT);
+			DataInputStream dis = new DataInputStream(socket.getInputStream());
+			DataOutputStream dos = new DataOutputStream(socket.getOutputStream());
+
+			// Gửi yêu cầu cập nhật quyền cho thư mục
+			dos.writeUTF("UpdateFolderRole");
+			dos.writeUTF(mssv);
+			dos.writeUTF(folderId);
+			dos.writeUTF(userId);
+			dos.writeUTF(roleId);
+
+			// Nhận phản hồi từ server
+			String response = dis.readUTF();
+			System.out.println("Server response: " + response);
+
+			// Hiển thị thông báo
+			if (response.equals("Update successfully")) {
+				showAlert(Alert.AlertType.INFORMATION, "Thành công", "Cập nhật quyền thành công");
+			} else {
+				showAlert(Alert.AlertType.ERROR, "Lỗi", "Cập nhật quyền thất bại");
+			}
+
+			dis.close();
+			dos.close();
+			socket.close();
+		} catch (IOException e) {
+			e.printStackTrace();
+			showAlert(Alert.AlertType.ERROR, "Lỗi", "Lỗi khi kết nối đến server: " + e.getMessage());
+		}
+	}
+
+//Tim kiem
+	@FXML
+	public void handleSearch(ActionEvent event) {
+		String keyword = txtSearch.getText();
+		if (keyword == null || keyword.trim().isEmpty()) {
+			// Nếu ô tìm kiếm trống, hiển thị lại tất cả file/folder
+			if (currentFunction.equals("GetMyFileName"))
+				handleCuaToi();
+			else if (currentFunction.equals("GetGuestFileName")) {
+				handleDuocChiaSe();
+			} else {
+				handleTatCa();
+			}
+			return;
+		}
+
+		// Xóa dữ liệu cũ
+		fileManager.reset();
+
+		// Gửi yêu cầu tìm kiếm đến server
+		try {
+			Socket socket = new Socket(ServerConfig.SERVER_IP, ServerConfig.SERVER_PORT);
+			DataInputStream dis = new DataInputStream(socket.getInputStream());
+			DataOutputStream dos = new DataOutputStream(socket.getOutputStream());
+
+			dos.writeUTF("Search");
+			dos.writeUTF(mssv);
+			dos.writeUTF(keyword);
+
+			// Nhận phản hồi từ server
+			String folderResponse = dis.readUTF();
+			String fileResponse = dis.readUTF();
+
+			// Lưu trữ dữ liệu mới, giả sử bạn đã có hàm storeSearchData tương tự storeData
+			storeSearchData(fileManager, folderResponse, fileResponse);
+
+			// Hiển thị kết quả tìm kiếm
+			Platform.runLater(() -> {
+				if (fileManager.isEmpty()) {
+					// Nếu không tìm thấy kết quả
+					showAlert(Alert.AlertType.INFORMATION, "Thông báo", "Không tìm thấy kết quả phù hợp.");
+				} else {
+					// Hiển thị kết quả tìm kiếm
+					displayFiles(fileManager);
+				}
+			});
+
+			dis.close();
+			dos.close();
+			socket.close();
+		} catch (IOException e) {
+			e.printStackTrace();
+			showAlert(Alert.AlertType.ERROR, "Lỗi", "Lỗi kết nối đến server!");
+		}
+	}
+
+	private void storeSearchData(FileManager fileManager, String folderResponse, String fileResponse) {
+		// Xử lý folderResponse
+		if (!folderResponse.trim().isEmpty()) { // Kiểm tra chuỗi rỗng
+			String[] folderEntries = folderResponse.split(";");
+			for (String entry : folderEntries) {
+				String[] parts = entry.split(",");
+				if (parts.length == 2) {
+					String id = parts[0].trim();
+					String name = parts[1].trim();
+					FileNode folder = new FileNode(id, name, true);
+					// Thêm folder vào root (vì không có parentId)
+					if (!fileManager.isFolderExists(id)) {
+						fileManager.addFolder(root, folder); // Thay vì parentId, ta thêm vào root
+					}
+				}
+			}
+		}
+
+		// Xử lý fileResponse
+		if (!fileResponse.trim().isEmpty()) { // Kiểm tra chuỗi rỗng
+			String[] fileEntries = fileResponse.split(";");
+			for (String entry : fileEntries) {
+				String[] parts = entry.split(",");
+				if (parts.length == 2) {
+					String id = parts[0].trim();
+					String name = parts[1].trim();
+					FileNode file = new FileNode(id, name, false);
+					// Thêm file vào root (vì không có parentId)
+					if (!fileManager.isFileExists(id)) {
+						fileManager.addFile(root, file); // Thay vì parentId, ta thêm vào root
+					}
+				}
+			}
+		}
+	}
 
 }

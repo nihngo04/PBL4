@@ -127,7 +127,7 @@
          <children>
       		<AnchorPane prefHeight="101.0" prefWidth="1297.0">
       			<children>
-      				<TextField layoutX="543.0" layoutY="13.0" prefHeight="34.0" prefWidth="405.0" promptText="Seach file" style="-fx-background-color: transparent; -fx-border-color: #AEB2C3; -fx-border-radius: 30px;">
+      				<TextField fx:id="txtSearch" layoutX="543.0" layoutY="13.0" prefHeight="34.0" prefWidth="405.0" promptText="Seach file" style="-fx-background-color: transparent; -fx-border-color: #AEB2C3; -fx-border-radius: 30px;" onAction="#handleSearch">
       					<font>
       						<Font name="Arial" size="13.0" />
       					</font>

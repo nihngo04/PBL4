@@ -6,6 +6,7 @@ public class UserSession {
 	private String ten; // Tên sinh viên
 	private String lop; // Lớp sinh viên
 	private String data; // Dữ liệu bổ sung
+	private String datamax; // Dung luong toi da
     private String root;  // Add root field to store the root 
     private String node;
 
@@ -54,9 +55,19 @@ public class UserSession {
 	public String getData() {
 		return data;
 	}
+	
 
 	public void setData(String data) {
 		this.data = data;
+	}
+	
+	public String getDataMax() {
+		return datamax;
+	}
+	
+
+	public void setDataMax(String datamax) {
+		this.datamax = datamax;
 	}
 	
 	public String getRoot() {

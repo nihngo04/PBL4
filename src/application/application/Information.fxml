@@ -12,13 +12,17 @@
       <Label layoutX="370.0" layoutY="284.0" text="Lớp:" />
       <Label layoutX="313.0" layoutY="196.0" text="Mã số sinh viên:" />
       <Label layoutX="368.0" layoutY="324.0" text="Data:" />
-      <Label layoutX="510.0" layoutY="324.0" text="Bytes" />
+      <Label layoutX="555.0" layoutY="324.0" text="GB," />
       <TextField fx:id="txtMSSV" editable="false" layoutX="398.0" layoutY="192.0" style="-fx-background-color: transparent;" />
       <TextField fx:id="txtTen" editable="false" layoutX="398.0" layoutY="237.0" style="-fx-background-color: transparent;" />
       <TextField fx:id="txtLop" editable="false" layoutX="398.0" layoutY="280.0" style="-fx-background-color: transparent;" />
-      <TextField fx:id="txtData" editable="false" layoutX="398.0" layoutY="320.0" prefHeight="25.0" prefWidth="112.0" style="-fx-background-color: transparent;" />
-      <Button layoutX="376.0" layoutY="384.0" mnemonicParsing="false" onAction="#handleChangeInfo" style="-fx-background-radius: 8px;" text="Thay đổi" />
-      <Button layoutX="584.0" layoutY="192.0" mnemonicParsing="false" onAction="#showChangePasswordForm" style="-fx-background-radius: 8px;" text="Đổi mật khẩu" />
-      <Button layoutX="508.0" layoutY="384.0" mnemonicParsing="false" onAction="#handleSaveInfo" prefHeight="25.0" prefWidth="61.0" style="-fx-background-radius: 8px;" text="Lưu" />
+      <TextField fx:id="txtData" editable="false" layoutX="397.0" layoutY="320.0" prefHeight="25.0" prefWidth="85.0" style="-fx-background-color: transparent;" />
+      <TextField fx:id="txtDataMax" editable="false" layoutX="491.0" layoutY="320.0" prefHeight="25.0" prefWidth="61.0" style="-fx-background-color: transparent;" />
+      <Button fx:id="btnUpdate" layoutX="376.0" layoutY="384.0" mnemonicParsing="false" onAction="#handleChangeInfo" style="-fx-background-radius: 8px;" text="Thay đổi" />
+      <Button fx:id="btnChangePass" layoutX="584.0" layoutY="192.0" mnemonicParsing="false" onAction="#showChangePasswordForm" style="-fx-background-radius: 8px;" text="Đổi mật khẩu" />
+      <Button fx:id="btnSave" layoutX="508.0" layoutY="384.0" mnemonicParsing="false" onAction="#handleSaveInfo" prefHeight="25.0" prefWidth="61.0" style="-fx-background-radius: 8px;" text="Lưu" />
+      <Label layoutX="484.0" layoutY="324.0" text="/" />
+      <Label fx:id="lbRoleName" layoutX="617.0" layoutY="324.0" style="-fx-background-color: transparent;" text="Gói:" visible="false" />
+      <TextField fx:id="txtRoleName" layoutX="638.0" layoutY="320.0" prefHeight="25.0" prefWidth="46.0" style="-fx-background-color: transparent;" visible="false" />
    </children>
 </AnchorPane>

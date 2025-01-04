@@ -43,7 +43,7 @@
                      </font></Label>
                </children>
             </AnchorPane>
-            <Button fx:id="quanlytaikhoan" alignment="BASELINE_LEFT" graphicTextGap="30.0" mnemonicParsing="false" onAction="#LoadAccount" prefHeight="55.0" prefWidth="320.0" styleClass="btnMenu" stylesheets="@Dashboard.css" text="Quản lý tài khoản">
+            <Button fx:id="quanlytaikhoan" alignment="BASELINE_LEFT" graphicTextGap="30.0" mnemonicParsing="false" onAction="#LoadAccount" prefHeight="55.0" prefWidth="320.0" styleClass="btnMenu" stylesheets="@Dashboard.css" text="Quản lý thông tin">
                <graphic>
                   <ImageView fitHeight="20.0" fitWidth="22.0" pickOnBounds="true" preserveRatio="true">
                      <image>
@@ -55,7 +55,7 @@
                   <Insets left="80.0" />
                </padding>
             </Button>
-            <Button fx:id="quanlythongtin" alignment="BASELINE_LEFT" graphicTextGap="30.0" mnemonicParsing="false" onAction="#LoadInfor" prefHeight="55.0" prefWidth="320.0" styleClass="btnMenu" stylesheets="@Dashboard.css" text="Quản lý thông tin">
+            <Button fx:id="quanlythongtin" alignment="BASELINE_LEFT" graphicTextGap="30.0" mnemonicParsing="false" onAction="#LoadInfor" prefHeight="55.0" prefWidth="320.0" styleClass="btnMenu" stylesheets="@Dashboard.css" text="Quản lý tài khoản">
                <graphic>
                   <ImageView fitHeight="20.0" fitWidth="22.0" pickOnBounds="true" preserveRatio="true">
                      <image>

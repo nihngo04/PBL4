@@ -70,14 +70,16 @@ public class UploadOptionsController {
 		File selectedFile = fileChooser.showOpenDialog(null);
 
 		if (selectedFile != null) {
+			// Lấy kích thước file gốc
+			long originalFileSize = selectedFile.length();
+
 			// Nén file trước khi gửi
 			String zipFilePath = zipFile(selectedFile.getAbsolutePath());
 			if (zipFilePath != null) {
-				// Gửi file đã nén tới server
-				sendFile(zipFilePath, selectedFile.getName());
+				// Gửi file đã nén tới server cùng với kích thước gốc
+				sendFile(zipFilePath, selectedFile.getName(), originalFileSize);
 			}
 		}
-
 	}
 
 //	@FXML
@@ -160,7 +162,7 @@ public class UploadOptionsController {
 		return zipFilePath;
 	}
 
-	private void sendFile(String zipFilePath, String fileName) {
+	private void sendFile(String zipFilePath, String fileName, long originalFileSize) {
 		String currentFolderId = mainController.getCurrentFolderId();
 
 		Socket socket = null;
@@ -186,42 +188,48 @@ public class UploadOptionsController {
 			dos.writeUTF("UploadFile"); // Request type
 			dos.writeUTF(mssv); // MSSV
 			dos.writeUTF(fileName); // File name
-			dos.writeUTF(currentFolderId);
-			dos.writeUTF(String.valueOf(file.length())); // File size
+			dos.writeUTF(currentFolderId); // Folder ID
+			dos.writeUTF(String.valueOf(file.length())); // File size (kích thước file nén)
+			dos.writeUTF(String.valueOf(originalFileSize)); // Kích thước file gốc
+			String response = dis.readUTF();
+			if ("Upload".equals(response)) {
 
-			// Send file data
-			byte[] buffer = new byte[8192];
-			int bytesRead;
-			long totalBytesSent = 0;
+				// Send file data
+				byte[] buffer = new byte[8192];
+				int bytesRead;
+				long totalBytesSent = 0;
 
-			while ((bytesRead = fis.read(buffer)) != -1) {
-				bos.write(buffer, 0, bytesRead);
-				totalBytesSent += bytesRead;
-				System.out.println("Đã gửi: " + totalBytesSent + " / " + file.length() + " bytes");
-			}
-
-			bos.flush();
-			System.out.println("File đã được gửi tới server!");
-
-			String serverResponse = dis.readUTF();
-			System.out.println("Phản hồi từ server: " + serverResponse);
-
-			if ("Upload successful".equals(serverResponse)) {
-				showAlert(Alert.AlertType.INFORMATION, "Upload file thành công", "File đã được Upload thành công!");
-
-				if (file.delete()) {
-					System.out.println("Đã xóa file nén tạm: " + file.getAbsolutePath());
-				} else {
-					System.out.println("Không thể xóa file nén tạm: " + file.getAbsolutePath());
+				while ((bytesRead = fis.read(buffer)) != -1) {
+					bos.write(buffer, 0, bytesRead);
+					totalBytesSent += bytesRead;
+					System.out.println("Đã gửi: " + totalBytesSent + " / " + file.length() + " bytes");
 				}
 
-				if (currentFolderId.equals(root)) {
-					mainController.loadFiles("GetMyFileName");
+				bos.flush();
+				System.out.println("File đã được gửi tới server!");
+
+				String serverResponse = dis.readUTF();
+				System.out.println("Phản hồi từ server: " + serverResponse);
+
+				if ("Upload successful".equals(serverResponse)) {
+					showAlert(Alert.AlertType.INFORMATION, "Upload file thành công", "File đã được Upload thành công!");
+
+					if (file.delete()) {
+						System.out.println("Đã xóa file nén tạm: " + file.getAbsolutePath());
+					} else {
+						System.out.println("Không thể xóa file nén tạm: " + file.getAbsolutePath());
+					}
+
+					if (currentFolderId.equals(root)) {
+						mainController.loadFiles("GetMyFileName");
+					} else {
+						mainController.loadFolderFromServer(currentFolderId, fileManager);
+					}
 				} else {
-					mainController.loadFolderFromServer(currentFolderId, fileManager);
+					showAlert(Alert.AlertType.INFORMATION, "Upload file thất bại", "File đã được Upload thất bại!");
 				}
 			} else {
-				showAlert(Alert.AlertType.INFORMATION, "Upload file thất bại", "File đã được Upload thất bại!");
+				showAlert(Alert.AlertType.ERROR, "Upload folder thất bại", response);
 			}
 		} catch (IOException e) {
 			System.out.println("Lỗi khi gửi file: " + e.getMessage());
@@ -258,13 +266,16 @@ public class UploadOptionsController {
 			String folderPath = selectedFolder.getAbsolutePath();
 			System.out.println("Thư mục được chọn: " + folderPath);
 
+			// Tính toán kích thước thư mục
+			long folderSize = calculateFolderSize(selectedFolder);
+
 			// Tạo file .zip từ thư mục
 			File zipFile = new File(folderPath + ".zip");
 			try {
 				zipDirectory(selectedFolder, zipFile);
 				System.out.println("Đã nén thư mục thành: " + zipFile.getAbsolutePath());
 
-				sendFile(zipFile);
+				sendFile(zipFile, folderSize); // Truyền thêm kích thước folder
 
 			} catch (IOException e) {
 				System.out.println("Lỗi khi nén thư mục: " + e.getMessage());
@@ -275,11 +286,24 @@ public class UploadOptionsController {
 		}
 	}
 
-	private boolean sendFile(File file) {
+	public long calculateFolderSize(File folder) {
+		long size = 0;
+		for (File file : folder.listFiles()) {
+			if (file.isDirectory()) {
+				size += calculateFolderSize(file);
+			} else {
+				size += file.length();
+			}
+		}
+		return size;
+	}
+
+	private boolean sendFile(File file, long folderSize) { // Thêm tham số folderSize
 		String currentFolderId = mainController.getCurrentFolderId();
 		Socket socket = null;
 		DataOutputStream dos = null;
 		DataInputStream dis = null;
+		System.out.println("kích thước folder: " + folderSize);
 
 		try {
 			if (!file.exists()) {
@@ -289,6 +313,7 @@ public class UploadOptionsController {
 
 			System.out.println("Bắt đầu gửi file: " + file.getName());
 			System.out.println("Kích thước file: " + file.length() + " bytes");
+			System.out.println("Kích thước thư mục ban đầu: " + folderSize + " bytes"); // In ra kích thước folder
 
 			// Kết nối tới server
 			socket = new Socket(ServerConfig.SERVER_IP, ServerConfig.SERVER_PORT);
@@ -305,44 +330,47 @@ public class UploadOptionsController {
 			dos.writeUTF("UploadFolder"); // Loại yêu cầu
 			dos.writeUTF(mssv); // MSSV
 			dos.writeUTF(fileName); // Tên file không có đuôi .zip
-			dos.writeUTF(currentFolderId);
-			dos.writeUTF(String.valueOf(file.length())); // Kích thước file
-
-			// Gửi dữ liệu file
-			try (FileInputStream fis = new FileInputStream(file)) {
-				byte[] buffer = new byte[8192];
-				int bytesRead;
-				long totalBytesSent = 0;
-
-				while ((bytesRead = fis.read(buffer)) != -1) {
-					dos.write(buffer, 0, bytesRead);
-					totalBytesSent += bytesRead;
-					System.out.println("Đã gửi: " + totalBytesSent + " / " + file.length() + " bytes");
-				}
-			}
-
-			// Nhận phản hồi từ server
+			dos.writeUTF(currentFolderId); // ID thư mục hiện tại
+			dos.writeUTF(String.valueOf(file.length())); // Kích thước file ZIP
+			dos.writeUTF(String.valueOf(folderSize)); // Kích thước folder ban đầu
 			String response = dis.readUTF();
-			System.out.println("Phản hồi từ server: " + response);
-			if ("Upload successfully".equals(response)) {
-				showAlert(Alert.AlertType.INFORMATION, "Upload file thành công", "File đã được Upload thành công!");
-				// Xóa file ZIP tạm nếu gửi thành công
-//				if (file.delete()) {
-//					System.out.println("Đã xóa file nén tạm: " + file.getAbsolutePath());
-//				} else {
-//					System.out.println("Không thể xóa file nén tạm: " + file.getAbsolutePath());
-//				}
+			if ("Upload".equals(response)) {
+				// Gửi dữ liệu file
+				try (FileInputStream fis = new FileInputStream(file)) {
+					byte[] buffer = new byte[8192];
+					int bytesRead;
+					long totalBytesSent = 0;
 
-				if (currentFolderId.equals(root)) {
-					mainController.loadFiles("GetMyFileName");
-				} else {
-					mainController.loadFolderFromServer(currentFolderId, fileManager);
+					while ((bytesRead = fis.read(buffer)) != -1) {
+						dos.write(buffer, 0, bytesRead);
+						totalBytesSent += bytesRead;
+						System.out.println("Đã gửi: " + totalBytesSent + " / " + file.length() + " bytes");
+					}
 				}
-			} else {
-				showAlert(Alert.AlertType.INFORMATION, "Upload file thất bại", "File đã được Upload thất bại!");
-			}
 
-			return "Upload successfully".equals(response); // Giả sử server gửi "Success" khi upload thành công
+				// Nhận phản hồi từ server
+				String responseresult = dis.readUTF();
+				System.out.println("Phản hồi từ server: " + responseresult);
+				if ("Upload successfully".equals(responseresult)) {
+					showAlert(Alert.AlertType.INFORMATION, "Upload file thành công", "File đã được Upload thành công!");
+					// Xóa file ZIP tạm nếu gửi thành công (tùy chọn)
+					 file.delete();
+
+					if (currentFolderId.equals(root)) {
+						mainController.loadFiles("GetMyFileName");
+					} else {
+						mainController.loadFolderFromServer(currentFolderId, fileManager);
+					}
+				} else {
+					showAlert(Alert.AlertType.INFORMATION, "Upload file thất bại", "File đã được Upload thất bại!");
+				}
+
+				return true;
+			}
+			else {
+				showAlert(Alert.AlertType.ERROR, "Upload folder thất bại", response);
+				return false;
+			}
 		} catch (IOException e) {
 			System.out.println("Lỗi khi gửi file: " + e.getMessage());
 			return false;
@@ -361,6 +389,7 @@ public class UploadOptionsController {
 		}
 	}
 
+	// ... (các phương thức khác giữ nguyên) ...
 
 	private void zipDirectory(File inputDir, File outputZipFile) throws IOException {
 		try (FileOutputStream fos = new FileOutputStream(outputZipFile);

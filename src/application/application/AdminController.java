@@ -4,17 +4,24 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.Socket;
+import java.util.ArrayList;
+import java.util.List;
 
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
+import javafx.geometry.Insets;
 import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
+import javafx.scene.control.ButtonType;
+import javafx.scene.control.ComboBox;
+import javafx.scene.control.Dialog;
+import javafx.scene.control.Label;
 import javafx.scene.control.TableCell;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
@@ -23,6 +30,7 @@ import javafx.scene.control.Alert.AlertType;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
+import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.stage.Stage;
 
@@ -51,31 +59,7 @@ public class AdminController {
 //		// Khởi tạo cột MSSV và Name với dữ liệu
 		mssvColumn.setCellValueFactory(new PropertyValueFactory<>("mssv"));
 		nameColumn.setCellValueFactory(new PropertyValueFactory<>("name"));
-//
-//		// Cấu hình cột Actions để hiển thị các nút
-//		actionColumn.setCellFactory(param -> new TableCell<User, Void>() {
-//			private final Button viewButton = new Button("Xem");
-//			private final Button editButton = new Button("Sửa");
-//			private final Button changePassButton = new Button("Đặt lại mật khẩu");
-//
-//			@Override
-//			protected void updateItem(Void item, boolean empty) {
-//				super.updateItem(item, empty);
-//
-//				if (empty) {
-//					setGraphic(null);
-//				} else {
-//					// Tạo một HBox chứa các nút và thêm vào cột
-//					HBox hBox = new HBox(10, viewButton, editButton, changePassButton);
-//					setGraphic(hBox);
-//
-//					// Cấu hình sự kiện cho các nút
-//					viewButton.setOnAction(event -> viewUser(getTableRow().getItem()));
-//					editButton.setOnAction(event -> editUser(getTableRow().getItem()));
-//					changePassButton.setOnAction(event -> changePassword(getTableRow().getItem()));
-//				}
-//			}
-//		});
+
 	}
 
 	@FXML
@@ -93,27 +77,41 @@ public class AdminController {
 	}
 
 	private void configureForAccounts() {
-		mssvColumn.setVisible(true);
-		nameColumn.setVisible(true);
-		actionColumn.setText("Actions");
-		actionColumn.setCellFactory(param -> new TableCell<User, Void>() {
-			private final Button viewButton = new Button("Xem");
-			private final Button editButton = new Button("Sửa");
+        mssvColumn.setVisible(true);
+        nameColumn.setVisible(true);
+        actionColumn.setText("Actions");
+        actionColumn.setCellFactory(param -> new TableCell<User, Void>() {
+            private final Button viewButton = new Button("Xem");
+            private final Button editButton = new Button("Cập nhật gói data");
 
-			@Override
-			protected void updateItem(Void item, boolean empty) {
-				super.updateItem(item, empty);
-				if (empty) {
-					setGraphic(null);
-				} else {
-					HBox hBox = new HBox(10, viewButton, editButton);
-					setGraphic(hBox);
-					viewButton.setOnAction(event -> viewUser(getTableRow().getItem()));
-					editButton.setOnAction(event -> editUser(getTableRow().getItem()));
-				}
-			}
-		});
-	}
+            {
+                viewButton.setOnAction(event -> {
+                    User user = getTableRow().getItem();
+                    if (user != null) {
+                        viewUser(user);
+                    }
+                });
+
+                editButton.setOnAction(event -> {
+                    User user = getTableRow().getItem();
+                    if (user != null) {
+                    	updateUserRole(user);
+                    }
+                });
+            }
+
+            @Override
+            protected void updateItem(Void item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty) {
+                    setGraphic(null);
+                } else {
+                    HBox hBox = new HBox(10, viewButton, editButton);
+                    setGraphic(hBox);
+                }
+            }
+        });
+    }
 
 	private void configureForInformation() {
 		mssvColumn.setVisible(true);
@@ -175,15 +173,15 @@ public class AdminController {
 	// Các phương thức để xử lý hành động
 	public void viewUser(User user) {
 		try {
-			// Tạo FXMLLoader và load FXML của Information.fxml
-			FXMLLoader fxmlLoader = new FXMLLoader(getClass().getResource("/application/Information.fxml"));
+			// Tạo FXMLLoader và load FXML của InformationAdmin.fxml
+			FXMLLoader fxmlLoader = new FXMLLoader(getClass().getResource("/application/InformationAdmin.fxml"));
 			Parent root = fxmlLoader.load();
 
-			// Lấy đối tượng controller của Information.fxml
-			InformationController informationController = fxmlLoader.getController();
+			// Lấy đối tượng controller của InformationAdmin.fxml
+			InformationAdminController informationAdminController = fxmlLoader.getController();
 
-			// Gửi MSSV tới InformationController để lấy thông tin
-			informationController.getInformationFromServer(user.getMssv());
+			// Gửi MSSV tới InformationAdminController để lấy thông tin
+			informationAdminController.loadInformation(user.getMssv());
 
 			// Tạo một Stage mới để hiển thị thông tin
 			Stage stage = new Stage();
@@ -200,34 +198,198 @@ public class AdminController {
 		}
 	}
 
-	public void editUser(User user) {
+//	public void editUser(User user) {
+//		try {
+//			// Tạo FXMLLoader và load FXML của Information.fxml
+//			FXMLLoader fxmlLoader = new FXMLLoader(getClass().getResource("/application/Information.fxml"));
+//			Parent root = fxmlLoader.load();
+//
+//			// Lấy đối tượng controller của Information.fxml
+//			InformationController informationController = fxmlLoader.getController();
+//
+//			// Gửi MSSV tới InformationController để lấy thông tin
+//			informationController.getInformationFromServer(user.getMssv());
+//
+//			// Tạo một Stage mới để hiển thị thông tin
+//			Stage stage = new Stage();
+//			stage.setTitle("Thông tin người dùng");
+//			stage.setScene(new Scene(root));
+//
+//			// Lắng nghe sự kiện khi cửa sổ đóng lại
+//			stage.setOnCloseRequest(event -> {
+//				// Gọi lại phương thức getAllUsers() khi cửa sổ đóng
+//				getAllUsers();
+//			});
+//
+//			stage.show();
+//
+//		} catch (IOException e) {
+//			e.printStackTrace();
+//		}
+//	}
+
+	private void updateUserRole(User user) {
+		// Tạo Dialog
+		Dialog<ButtonType> dialog = new Dialog<>();
+		dialog.setTitle("Cập nhật gói data");
+		dialog.setHeaderText("Cập nhật gói data cho người dùng: " + user.getMssv());
+
+		// Thêm nút
+		dialog.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
+
+		// Tạo GridPane để chứa các thành phần
+		GridPane grid = new GridPane();
+		grid.setHgap(10);
+		grid.setVgap(10);
+		grid.setPadding(new Insets(20, 150, 10, 10));
+
+		// Label và ComboBox chọn role
+		Label lblRole = new Label("Chọn gói:");
+		ComboBox<String> cbRoles = new ComboBox<>();
+		cbRoles.getItems().addAll(getRolesFromServer()); // Lấy danh sách role từ server
+
+		// Lấy role hiện tại của user và chọn sẵn trên ComboBox
+		String currentRoleName = getCurrentRoleName(user.getMssv());
+		cbRoles.setValue(currentRoleName);
+
+		// Thêm các thành phần vào GridPane
+		grid.add(lblRole, 0, 0);
+		grid.add(cbRoles, 1, 0);
+
+		// Thêm GridPane vào Dialog
+		dialog.getDialogPane().setContent(grid);
+
+		// Xử lý khi nhấn nút OK
+		dialog.setResultConverter(dialogButton -> {
+			if (dialogButton == ButtonType.OK) {
+				String selectedRoleName = cbRoles.getValue();
+				String roleId = getRoleIdFromName(selectedRoleName);
+
+				if (roleId != null) {
+					try {
+						Socket socket = new Socket(ServerConfig.SERVER_IP, ServerConfig.SERVER_PORT);
+						DataOutputStream dos = new DataOutputStream(socket.getOutputStream());
+
+						dos.writeUTF("UpdateUserRole");
+						dos.writeUTF(mssv); // MSSV của admin
+						dos.writeUTF(user.getMssv()); // MSSV của người dùng cần cập nhật
+						dos.writeUTF(roleId); // Role ID mới
+
+						DataInputStream dis = new DataInputStream(socket.getInputStream());
+						String response = dis.readUTF();
+						System.out.println("updateUserRole response"+response);
+
+						if ("Update successfully".equals(response)) {
+							showAlert(Alert.AlertType.INFORMATION, "Thành công", "Cập nhật gói data thành công!");
+							// Có thể làm mới bảng User ở đây nếu cần
+							getAllUsers();
+						} else {
+							showAlert(Alert.AlertType.ERROR, "Lỗi", "Cập nhật gói data thất bại! " + response);
+						}
+
+						dis.close();
+						dos.close();
+						socket.close();
+
+					} catch (IOException e) {
+						e.printStackTrace();
+						showAlert(Alert.AlertType.ERROR, "Lỗi", "Lỗi kết nối đến server!");
+					}
+				}
+			}
+			return null;
+		});
+
+		dialog.showAndWait();
+	}
+
+	private String getCurrentRoleName(String userMssv) {
 		try {
-			// Tạo FXMLLoader và load FXML của Information.fxml
-			FXMLLoader fxmlLoader = new FXMLLoader(getClass().getResource("/application/Information.fxml"));
-			Parent root = fxmlLoader.load();
+			Socket socket = new Socket(ServerConfig.SERVER_IP, ServerConfig.SERVER_PORT);
+			DataInputStream dis = new DataInputStream(socket.getInputStream());
+			DataOutputStream dos = new DataOutputStream(socket.getOutputStream());
 
-			// Lấy đối tượng controller của Information.fxml
-			InformationController informationController = fxmlLoader.getController();
+			dos.writeUTF("GetInformation");
+			dos.writeUTF(userMssv);
 
-			// Gửi MSSV tới InformationController để lấy thông tin
-			informationController.getInformationFromServer(user.getMssv());
+			String response = dis.readUTF();
+			System.out.println("getCurrentRoleName response"+response);
 
-			// Tạo một Stage mới để hiển thị thông tin
-			Stage stage = new Stage();
-			stage.setTitle("Thông tin người dùng");
-			stage.setScene(new Scene(root));
+			String[] lines = response.split("\n");
+			for (String line : lines) {
+				if (line.startsWith("RoleName:")) {
+					return line.split(": ")[1].trim();
+				}
+			}
 
-			// Lắng nghe sự kiện khi cửa sổ đóng lại
-			stage.setOnCloseRequest(event -> {
-				// Gọi lại phương thức getAllUsers() khi cửa sổ đóng
-				getAllUsers();
-			});
-
-			stage.show();
-
+			dis.close();
+			dos.close();
+			socket.close();
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
+		return ""; // Trả về chuỗi rỗng nếu không tìm thấy
+	}
+
+	private List<String> getRolesFromServer() {
+	    List<String> roles = new ArrayList<>();
+	    try {
+	        Socket socket = new Socket(ServerConfig.SERVER_IP, ServerConfig.SERVER_PORT);
+	        DataInputStream dis = new DataInputStream(socket.getInputStream());
+	        DataOutputStream dos = new DataOutputStream(socket.getOutputStream());
+
+	        dos.writeUTF("GetAllUserRole");
+
+	        String response = dis.readUTF();
+			System.out.println("getRolesFromServer response"+response);
+	        
+	        // Xử lý response: 0,Admin;1,Read_Write;2,Read_only
+	        String[] roleParts = response.split(";");
+	        for (String part : roleParts) {
+				String[] roleInfo = part.split(",");
+				if (roleInfo.length == 2) {
+					// Lọc bỏ role "Admin" (roleId = 0)
+					if (!roleInfo[0].equals("RL01")) {
+						roles.add(roleInfo[1]); // Thêm roleName vào danh sách
+					}
+				}
+			}
+
+	        dis.close();
+	        dos.close();
+	        socket.close();
+	    } catch (IOException e) {
+	        e.printStackTrace();
+	    }
+	    return roles;
+	}
+
+	private String getRoleIdFromName(String roleName) {
+		try {
+			Socket socket = new Socket(ServerConfig.SERVER_IP, ServerConfig.SERVER_PORT);
+			DataInputStream dis = new DataInputStream(socket.getInputStream());
+			DataOutputStream dos = new DataOutputStream(socket.getOutputStream());
+
+			dos.writeUTF("GetAllUserRole");
+
+			String response = dis.readUTF();
+			System.out.println("getRoleIdFromName response"+response);
+
+			String[] roleParts = response.split(";");
+			for (String part : roleParts) {
+				String[] roleInfo = part.split(",");
+				if (roleInfo.length == 2 && roleInfo[1].equals(roleName)) {
+					return roleInfo[0];
+				}
+			}
+
+			dis.close();
+			dos.close();
+			socket.close();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		return null; // Không tìm thấy role ID
 	}
 
 	public void changePassword(User user) {
@@ -239,6 +401,7 @@ public class AdminController {
 
 			// Gửi yêu cầu reset mật khẩu và MSSV
 			dos.writeUTF("ResetPassword");
+			dos.writeUTF(mssv);
 			dos.writeUTF(user.getMssv()); // Gửi MSSV của người dùng cần đổi mật khẩu
 
 			// Nhận phản hồi từ server về kết quả reset mật khẩu
